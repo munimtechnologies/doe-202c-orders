@@ -1,0 +1,88 @@
+order,kind,area,recipient,plant_key,plant,issued,effective,expires,expires_time,source,note
+202-25-1,island,Puerto Rico,PREPA,,,2025-05-16,2025-05-16,,,https://www.energy.gov/ceser/2025-doe-202c-orders,start and expiry not stated on DOE's page; issue date used as start
+202-25-2,island,Puerto Rico,PREPA,,,2025-05-16,2025-05-16,,,https://www.energy.gov/ceser/2025-doe-202c-orders,start and expiry not stated on DOE's page; issue date used as start
+202-25-3,plant,MISO,MISO with Consumers Energy,campbell,J.H. Campbell,2025-05-23,2025-05-23,2025-08-21,,https://www.energy.gov/ceser/2025-doe-202c-orders,start and expiry not stated on DOE's page; issue date used as start; expiry as in data/doe_202c_unit_orders.csv
+202-25-4,plant,PJM,PJM with Constellation Energy,eddystone,Eddystone,2025-05-30,2025-05-30,2025-08-28,,https://www.energy.gov/ceser/2025-doe-202c-orders,start and expiry not stated on DOE's page; issue date used as start; expiry as in data/doe_202c_unit_orders.csv
+202-25-5,event,Duke,Duke Energy Carolinas,,,2025-06-24,2025-06-24,2025-06-25,22:00 ET,https://www.energy.gov/ceser/2025-doe-202c-orders,start not stated on DOE's page; issue date used
+202-25-6,plant,PJM,PJM with Talen Energy,wagner,H.A. Wagner,2025-07-28,2025-07-28,2025-10-26,,https://www.energy.gov/ceser/2025-doe-202c-orders,start not stated on DOE's page; issue date used
+202-25-1A,island,Puerto Rico,PREPA,,,2025-08-14,2025-08-15,2025-11-12,,https://www.energy.gov/ceser/2025-doe-202c-orders,extension
+202-25-2A,island,Puerto Rico,PREPA,,,2025-08-14,2025-08-15,2025-11-12,,https://www.energy.gov/ceser/2025-doe-202c-orders,extension
+202-25-7,plant,MISO,MISO with Consumers Energy,campbell,J.H. Campbell,2025-08-20,2025-08-21,2025-11-19,,https://www.energy.gov/ceser/2025-doe-202c-orders,
+202-25-8,plant,PJM,PJM with Constellation Energy,eddystone,Eddystone,2025-08-28,2025-08-28,2025-11-26,,https://www.energy.gov/ceser/2025-doe-202c-orders,
+202-25-6A,plant,PJM,PJM with Talen Energy,wagner,H.A. Wagner,2025-10-24,2025-10-26,2025-12-31,,https://www.energy.gov/ceser/2025-doe-202c-orders,extension
+202-25-1B,island,Puerto Rico,PREPA,,,2025-11-12,2025-11-13,2026-02-10,,https://www.energy.gov/ceser/2025-doe-202c-orders,extension
+202-25-2B,island,Puerto Rico,PREPA,,,2025-11-12,2025-11-13,2026-02-10,,https://www.energy.gov/ceser/2025-doe-202c-orders,extension
+202-25-9,plant,MISO,MISO with Consumers Energy,campbell,J.H. Campbell,2025-11-18,2025-11-19,2026-02-17,,https://www.energy.gov/ceser/2025-doe-202c-orders,
+202-25-10,plant,PJM,PJM with Constellation Energy,eddystone,Eddystone,2025-11-25,2025-11-26,2026-02-24,,https://www.energy.gov/ceser/2025-doe-202c-orders,
+202-25-11,plant,West,TransAlta,centralia,Centralia,2025-12-16,2025-12-16,2026-03-16,,https://www.energy.gov/ceser/2025-doe-202c-orders,
+202-25-12,plant,MISO,NIPSCO and MISO,schahfer,R.M. Schahfer,2025-12-23,2025-12-23,2026-03-23,,https://www.energy.gov/ceser/2025-doe-202c-orders,
+202-25-13,plant,MISO,CenterPoint Energy and MISO,culley,F.B. Culley,2025-12-23,2025-12-23,2026-03-23,,https://www.energy.gov/ceser/2025-doe-202c-orders,
+202-25-14,plant,West,Tri-State and co-owners,craig,Craig,2025-12-30,2025-12-30,2026-03-30,,https://www.energy.gov/ceser/2025-doe-202c-orders,
+202-26-01,event,ERCOT,ERCOT,,,2026-01-24,2026-01-24,2026-01-27,23:59 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-01A,event,ERCOT,ERCOT,,,2026-01-25,2026-01-25,2026-01-27,23:59 EST,https://www.ercot.com/about/legal/doe202c,amended order (customer-owned backup generation) listed on ERCOT's page but not on DOE's 2026 list
+202-26-02,event,PJM,PJM,,,2026-01-25,2026-01-25,2026-01-31,23:59 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-03,event,ISO-NE,ISO-NE,,,2026-01-25,2026-01-25,2026-01-31,23:59 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-04,event,ERCOT,ERCOT,,,2026-01-25,2026-01-25,2026-01-27,23:59 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-05,event,Duke,Duke Energy,,,2026-01-26,2026-01-27,2026-01-30,12:00 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-06,event,PJM,PJM (backup generation),,,2026-01-26,2026-01-26,2026-01-31,23:59 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-07,event,Duke,Duke Energy Carolinas and Duke Energy Progress,,,2026-01-26,2026-01-26,2026-01-30,23:59 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-08,event,NYISO,NYISO,,,2026-01-26,2026-01-26,2026-02-02,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-02A,event,PJM,PJM,,,2026-01-29,2026-01-29,2026-02-02,23:59 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-05A,event,Duke,Duke Energy,,,2026-01-29,2026-01-29,2026-02-03,12:00 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-06A,event,PJM,PJM (backup generation),,,2026-01-29,2026-01-29,2026-02-02,23:59 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-03A,event,ISO-NE,ISO-NE,,,2026-01-30,2026-01-30,2026-02-14,23:59 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-07A,event,Duke,Duke Energy Carolinas and Duke Energy Progress,,,2026-01-30,2026-01-30,2026-02-03,12:00 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-09,event,Florida,Homestead Public Services Energy,,,2026-01-30,2026-01-30,2026-02-03,10:00 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-10,event,Florida,Duke Energy Florida,,,2026-01-31,2026-01-31,2026-02-03,12:00 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-11,event,Florida,Orlando Utilities Commission,,,2026-01-31,2026-01-31,2026-02-06,10:00 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-12,event,Florida,Florida Municipal Power Agency,,,2026-01-31,2026-01-31,2026-02-03,10:00 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-13,event,Florida,Florida Municipal Power Agency (backup units),,,2026-01-31,2026-01-31,2026-02-03,10:00 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-14,event,Florida,Lakeland Electric,,,2026-01-31,2026-01-31,2026-02-06,10:00 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-15,event,Florida,Orlando Utilities Commission (backup units),,,2026-01-31,2026-01-31,2026-02-06,10:00 EST,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-25-1C,island,Puerto Rico,PREPA,,,2026-02-10,2026-02-10,2026-05-11,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-25-2C,island,Puerto Rico,PREPA,,,2026-02-10,2026-02-10,2026-05-11,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-16,plant,MISO,MISO with Consumers Energy,campbell,J.H. Campbell,2026-02-17,2026-02-17,2026-05-18,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-17,plant,PJM,PJM with Constellation Energy,eddystone,Eddystone,2026-02-23,2026-02-24,2026-05-24,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-18,plant,West,TransAlta,centralia,Centralia,2026-03-16,2026-03-17,2026-06-14,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-19,plant,MISO,NIPSCO and MISO,schahfer,R.M. Schahfer,2026-03-23,2026-03-24,2026-06-21,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-20,plant,MISO,CenterPoint Energy and MISO,culley,F.B. Culley,2026-03-23,2026-03-24,2026-06-21,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-21,plant,West,Tri-State and co-owners,craig,Craig,2026-03-30,2026-03-31,2026-06-28,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-25-1D,island,Puerto Rico,PREPA,,,2026-05-11,2026-05-12,2026-08-09,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-25-2D,island,Puerto Rico,PREPA,,,2026-05-11,2026-05-12,2026-08-09,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-22,plant,MISO,MISO with Consumers Energy,campbell,J.H. Campbell,2026-05-18,2026-05-19,2026-08-16,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-23,event,PJM,PJM (data center backup generation),,,2026-05-18,2026-05-18,2026-05-20,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-24,plant,PJM,PJM with Constellation Energy,eddystone,Eddystone,2026-05-21,2026-05-25,2026-08-22,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-25,plant,PJM,PJM with Talen Energy,wagner,H.A. Wagner,2026-05-21,2026-05-22,2026-08-19,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-26,plant,Florida,Orlando Utilities Commission,stanton,Stanton Energy Center,2026-06-04,2026-06-04,2026-09-01,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-27,event,Duke,Duke Energy Carolinas and Duke Energy Progress,,,2026-06-11,2026-06-11,2026-06-12,22:00 ET,https://www.energy.gov/ceser/2026-doe-202c-orders,starts 16:00 ET
+202-26-28,plant,West,TransAlta,centralia,Centralia,2026-06-12,2026-06-15,2026-09-12,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-29,plant,MISO,NIPSCO and MISO,schahfer,R.M. Schahfer,2026-06-18,2026-06-22,2026-09-19,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-30,plant,MISO,CenterPoint Energy and MISO,culley,F.B. Culley,2026-06-18,2026-06-22,2026-09-19,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-31,plant,West,Tri-State and co-owners,craig,Craig,2026-06-26,2026-06-29,2026-09-26,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-32,event,PJM,PJM,,,2026-06-30,2026-06-30,2026-07-03,23:59 ET,https://www.energy.gov/ceser/2026-doe-202c-orders,starts 23:59 ET
+202-26-33,event,PJM,PJM (backup generation),,,2026-06-30,2026-06-30,2026-07-03,23:59 ET,https://www.energy.gov/ceser/2026-doe-202c-orders,starts 23:59 ET
+202-26-32A,event,PJM,PJM,,,2026-07-02,2026-07-02,2026-07-06,23:59 ET,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-34,event,Duke,Duke Energy Carolinas and Duke Energy Progress,,,2026-07-02,2026-07-02,2026-07-06,22:00 EDT,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-33A,event,PJM,PJM (backup generation),,,2026-07-03,2026-07-03,2026-07-07,23:59 ET,https://www.energy.gov/ceser/2026-doe-202c-orders,extension; starts 23:59 ET
+202-26-35,event,PJM,PJM,,,2026-07-14,2026-07-14,2026-07-21,23:59 EDT,https://www.energy.gov/ceser/2026-doe-202c-orders,starts 23:59 EDT
+202-26-36,event,SPP,SPP,,,2026-07-20,2026-07-20,2026-07-21,23:59 ET,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-37,event,SPP,SPP,,,2026-07-26,2026-07-26,2026-08-03,23:59 CDT,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-37A,event,SPP,SPP,,,2026-08-03,2026-08-04,2026-08-10,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-38,island,Guam,Guam Power Authority,,,2026-08-05,2026-08-06,2026-11-04,23:59 ChST,https://www.energy.gov/ceser/2026-doe-202c-orders,starts 10:00 ChST
+202-25-1E,island,Puerto Rico,PREPA,,,2026-08-07,2026-08-10,2026-11-07,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-25-2E,island,Puerto Rico,PREPA,,,2026-08-07,2026-08-10,2026-11-07,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-39,plant,MISO,MISO with Consumers Energy,campbell,J.H. Campbell,2026-08-14,2026-08-17,2026-11-14,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-25A,plant,PJM,PJM with Talen Energy,wagner,H.A. Wagner,2026-08-19,2026-08-20,2026-11-17,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-40,plant,PJM,PJM with Constellation Energy,eddystone,Eddystone,2026-08-21,2026-08-23,2026-11-20,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-41,event,PJM,PJM,,,2026-09-01,2026-09-01,2026-09-08,23:59 ET,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-42,plant,Florida,Orlando Utilities Commission,stanton,Stanton Energy Center,2026-09-01,2026-09-02,2026-11-30,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-43,event,Duke,Duke Energy Carolinas,,,2026-09-03,2026-09-03,2026-09-08,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-44,plant,West,TransAlta,centralia,Centralia,2026-09-11,2026-09-13,2026-12-11,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-45,event,PJM,PJM,,,2026-09-17,2026-09-17,2026-09-18,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-46,plant,MISO,NIPSCO and MISO,schahfer,R.M. Schahfer,2026-09-18,2026-09-20,2026-12-18,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-47,plant,MISO,CenterPoint Energy and MISO,culley,F.B. Culley,2026-09-18,2026-09-20,2026-12-18,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-48,event,Duke,Duke Energy Carolinas,,,2026-09-18,2026-09-18,2026-09-21,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-49,plant,West,Tri-State and co-owners,craig,Craig,2026-09-25,2026-09-27,2026-12-25,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-50,event,PJM,PJM,,,2026-10-12,2026-10-13,2026-10-16,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-25-1F,island,Puerto Rico,PREPA,,,2026-11-06,2026-11-08,2027-02-05,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-25-2F,island,Puerto Rico,PREPA,,,2026-11-06,2026-11-08,2027-02-05,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension

@@ -1,0 +1,9 @@
+plant_key,plant,state,plant_id_eia,generators,fuel,summer_mw,source
+campbell,J.H. Campbell,MI,1710,1|2|3,SUB,1330.5,EIA-860M via PUDL: summer capacity in the report before the plant's first order (docs/order-dates-output-v2.md)
+centralia,Centralia,WA,3845,2,SUB,670.0,EIA-860M via PUDL: summer capacity in the report before the plant's first order (docs/order-dates-output-v2.md)
+craig,Craig,CO,6021,1,SUB,427.0,EIA-860M via PUDL: summer capacity in the report before the plant's first order (docs/order-dates-output-v2.md)
+culley,F.B. Culley,IN,1012,2,SUB,90.0,EIA-860M via PUDL: summer capacity in the report before the plant's first order (docs/order-dates-output-v2.md)
+eddystone,Eddystone,PA,3161,3|4,NG,760.0,EIA-860M via PUDL: summer capacity in the report before the plant's first order (docs/order-dates-output-v2.md)
+schahfer,R.M. Schahfer,IN,6085,17|18,SUB,722.0,EIA-860M via PUDL: summer capacity in the report before the plant's first order (docs/order-dates-output-v2.md)
+stanton,Stanton Energy Center,FL,564,1,BIT,453.4,EIA-860M via PUDL: summer capacity in the report before the plant's first order (docs/order-dates-output-v2.md)
+wagner,H.A. Wagner,MD,1554,4,DFO,397.0,EIA-860M via PUDL: summer capacity in the report before the plant's first order (docs/order-dates-output-v2.md)
