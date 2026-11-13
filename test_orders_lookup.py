@@ -1,4 +1,4 @@
-# Tests for skills/doe-202c-orders (orders_lookup.py 0.2.0, doe_202c_orders.csv,
+# Tests for skills/doe-202c-orders (orders_lookup.py 0.2.1, doe_202c_orders.csv,
 # doe_202c_plant_mw.csv, doe_202c_court.csv, SKILL.md). Expected values were counted by hand
 # from the tables.
 # Copyright 2026 MV2, Munim, Inc. Apache-2.0. Made with AI agents working in MV2's name.
@@ -56,6 +56,7 @@ class TestTables(unittest.TestCase):
         self.assertEqual(newest, D(2026, 11, 6))
         self.assertLessEqual(newest, D.fromisoformat(ol.TABLE_AS_OF))
         self.assertEqual(ol.TABLE_AS_OF, "2026-11-13")
+        self.assertEqual(ol.__version__, "0.2.1")
 
     def test_plants_table(self):
         self.assertEqual(sorted(self.plants), sorted(PLANT_ORDERS_NOV))
@@ -71,7 +72,7 @@ class TestTables(unittest.TestCase):
             self.assertIn(c["order"], by_order)  # every action is on an order in the table
             self.assertEqual(c["plant_key"], by_order[c["order"]]["plant_key"])
             self.assertTrue(c["source"].startswith("https://"), c)
-            self.assertIn(c["date_kind"], ("decided", "reported"))
+            self.assertIn(c["date_kind"], ("decided", "filed", "reported"))
             self.assertLessEqual(c["date"], D.fromisoformat(ol.COURT_AS_OF))
             self.assertTrue(c["note"], c)
         first, second = self.court
@@ -79,8 +80,12 @@ class TestTables(unittest.TestCase):
                          ("202-25-3", D(2026, 9, 11), "vacated", "No. 25-1159"))
         # The vacated order had already expired when the court ruled.
         self.assertLess(by_order["202-25-3"]["expires"], first["date"])
-        self.assertEqual((second["date_kind"], second["action"]),
-                         ("reported", "rehearing petition by DOE"))
+        self.assertEqual((second["date"], second["date_kind"], second["action"]),
+                         (D(2026, 10, 26), "filed", "rehearing petition by DOE"))
+        # Filed on the 45th day after the decision (FRAP 40, a U.S. agency is a party).
+        self.assertEqual((second["date"] - first["date"]).days, 45)
+        self.assertIn("climate.law.columbia.edu", second["source"])
+        self.assertIn("publicpower.org", second["note"])  # the earlier report is still cited
 
 
 class TestLookups(unittest.TestCase):
@@ -178,6 +183,7 @@ class TestCli(unittest.TestCase):
         self.assertIn("under order 202-26-39, 6 days until its expiry date 2026-11-14", out)
         self.assertIn("Gaps between orders: none.", out)
         self.assertIn("202-25-3  2026-09-11 decided: vacated, No. 25-1159", out)
+        self.assertIn("202-25-3  2026-10-26 filed: rehearing petition by DOE, No. 25-1159", out)
         self.assertIn("says nothing about any other order", out)
         self.assertNotIn("WARNING", out)
 
@@ -231,14 +237,18 @@ class TestCli(unittest.TestCase):
         self.assertEqual(code, 0)
         res = json.loads(out)
         self.assertEqual(res["next_in_chain"], "202-25-7")
-        self.assertEqual([c["date"] for c in res["court"]], ["2026-09-11", "2026-10-30"])
+        self.assertEqual([c["date"] for c in res["court"]], ["2026-09-11", "2026-10-26"])
+        self.assertEqual([c["date_kind"] for c in res["court"]], ["decided", "filed"])
         self.assertEqual(res["court_as_of"], "2026-11-13")
+        self.assertEqual(res["version"], "0.2.1")
 
     def test_court_cli(self):
         code, out = run("court")
         self.assertEqual(code, 0)
         self.assertIn("Court actions on 202(c) orders in the court table: 2.", out)
         self.assertIn("https://media.cadc.uscourts.gov/opinions/docs/2026/09/25-1159.pdf", out)
+        self.assertIn("https://climate.law.columbia.edu/news/climate-litigation-updates-november-6-2026",
+                      out)
         code, out = run("court", "--json")
         self.assertEqual(len(json.loads(out)["court"]), 2)
 
@@ -269,13 +279,16 @@ class TestSkillDoc(unittest.TestCase):
         self.assertIn("orders_lookup.py %s" % ol.__version__, text)
         self.assertIn("doe_202c_court.csv", text)
         self.assertIn("No. 25-1159", text)
+        self.assertIn("26 October 2026", text)
+        self.assertNotIn("reported 30 October", text)
         for bad in ("git clone", "curl ", "wget ", "pip install", "npx "):
             self.assertNotIn(bad, text)
 
     def test_readme(self):
         with open(os.path.join(HERE, "README.md"), encoding="utf-8") as f:
             text = f.read()
-        self.assertIn("0.2.0", text)
+        self.assertIn("0.2.1", text)
+        self.assertIn("26 October 2026", text)
         self.assertIn("Apache-2.0", text)
         self.assertNotIn("MIT", text)
 

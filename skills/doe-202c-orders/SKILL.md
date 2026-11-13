@@ -6,7 +6,7 @@ license: Apache-2.0
 
 # DOE 202(c) emergency orders
 
-By MV2 of Munim, Inc. (mv2@munimtech.com), from github.com/munimtechnologies/doe-202c-orders (orders_lookup.py 0.2.0, orders table as of 2026-11-13, court table as of 2026-11-13). This skill and its lookup were made with AI agents working in MV2's name. Skill and code: Apache-2.0. Tables: CC BY 4.0; the orders are transcribed from DOE's public 202(c) pages, the court actions from the court's opinion and press reports, and the megawatts come from EIA-860M via PUDL (CC BY 4.0, Catalyst Cooperative). No person has checked every row against the order PDFs. This is information, not legal advice.
+By MV2 of Munim, Inc. (mv2@munimtech.com), from github.com/munimtechnologies/doe-202c-orders (orders_lookup.py 0.2.1, orders table as of 2026-11-13, court table as of 2026-11-13). This skill and its lookup were made with AI agents working in MV2's name. Skill and code: Apache-2.0. Tables: CC BY 4.0; the orders are transcribed from DOE's public 202(c) pages, the court actions from the court's opinion, a law-school litigation tracker and press reports, and the megawatts come from EIA-860M via PUDL (CC BY 4.0, Catalyst Cooperative). No person has checked every row against the order PDFs. This is information, not legal advice.
 
 Section 202(c) of the Federal Power Act lets the Secretary of Energy order generation or transmission to run during an emergency. Since May 2025 DOE has used it in three ways, which the table keeps apart in the `kind` column:
 
@@ -37,7 +37,7 @@ python orders_lookup.py court                                # every court actio
 python orders_lookup.py summary --json
 ```
 
-Every command takes `--json`. Exit codes: 0 found, 1 nothing matched, 2 bad input. An order is in force from its start date through its expiry date, both counted.
+Every command takes `--json`. Exit codes: 0 found, 1 nothing matched, 2 bad input. An order is in force from its start date through its expiry date, both counted. In the court table, `date_kind` says what a date is: `decided` (a ruling), `filed` (a filing) or `reported` (only a report's date is known).
 
 ## Traps (tell the user the ones that apply)
 
@@ -47,18 +47,18 @@ Every command takes `--json`. Exit codes: 0 found, 1 nothing matched, 2 bad inpu
 4. **Order numbers do not give the issue year.** Letters mark extensions and amendments (202-26-25A extends 202-26-25). PREPA's 2025 series continues into 2026 as 202-25-1C to 202-25-1F. Use the `issued` column, not the number.
 5. **Event orders overlap.** In a winter storm several areas can be under orders at once (8 event orders were in force on 26 January 2026). Count days covered, not orders, when describing how long an emergency lasted.
 6. **Sources differ slightly.** 202-26-01A (ERCOT, customer-owned backup generation) is listed on ERCOT's page but not on DOE's 2026 list. For the first PREPA orders (202-25-1, 202-25-2) DOE's page gives no start or expiry, so the issue date is used as the start and they are never counted as in force. The `note` column says where a date was inferred.
-7. **A court ruling covers one order, not the chain.** On 11 September 2026 the D.C. Circuit (No. 25-1159, Michigan v. U.S. Department of Energy) granted the petitions for review and vacated Campbell's first order, 202-25-3, which had expired in August 2025. It held that section 202(c) is for an identified risk of a substantial supply shortfall that calls for immediate action. Challenges to the later Campbell orders were held in abeyance and not decided, and DOE has asked for rehearing (reported 30 October 2026). Campbell's later orders, and every other plant's orders, stay in force on their own dates in the table. `doe_202c_court.csv` lists only court actions found as of its as-of date; requests for rehearing at DOE, cases still pending (other states and plants have them) and actions not yet found are not in it. Do not infer from a missing row that an order was upheld, and do not say an order is no longer in force because of a ruling on a different order.
+7. **A court ruling covers one order, not the chain.** On 11 September 2026 the D.C. Circuit (No. 25-1159, Michigan v. U.S. Department of Energy) granted the petitions for review and vacated Campbell's first order, 202-25-3, which had expired in August 2025. It held that section 202(c) is for an identified risk of a substantial supply shortfall that calls for immediate action. Challenges to the later Campbell orders were held in abeyance and not decided. DOE petitioned for panel rehearing or rehearing en banc on 26 October 2026; no ruling on that petition was found as of 13 November 2026 (the table does not track the court's mandate). Campbell's later orders, and every other plant's orders, stay in force on their own dates in the table. `doe_202c_court.csv` lists only court actions found as of its as-of date; requests for rehearing at DOE, cases still pending (other states and plants have them) and actions not yet found are not in it. Do not infer from a missing row that an order was upheld or that a petition was decided, and do not say an order is no longer in force because of a ruling on a different order.
 
 ## Explain the results honestly
 
 - Quote the order number, its dates and the source URL in the `source` column, and say the table's as-of date.
-- Say that the rows were transcribed by AI agents from DOE's pages and that no person has checked every row against the order PDFs. If a row matters for a decision, open the order itself, and for court actions, the opinion.
+- Say that the rows were transcribed by AI agents from DOE's pages and that no person has checked every row against the order PDFs. If a row matters for a decision, open the order itself, and for court actions, the opinion or the court's docket.
 - Do not give legal advice on what an order requires of a utility or on what a ruling means for a case.
 
 ## Sources and limits
 
 - DOE CESER 202(c) pages: energy.gov/ceser/2025-doe-202c-orders and energy.gov/ceser/2026-doe-202c-orders (read through 13 November 2026; the 2026 page then showed nothing issued after 6 November); ERCOT's DOE 202(c) page for 202-26-01A.
-- Court actions: the D.C. Circuit's opinion in No. 25-1159 (media.cadc.uscourts.gov/opinions/docs/2026/09/25-1159.pdf), National Law Review's summary of it, and APPA's report of DOE's rehearing petition (publicpower.org, 30 October 2026).
+- Court actions: the D.C. Circuit's opinion in No. 25-1159 (media.cadc.uscourts.gov/opinions/docs/2026/09/25-1159.pdf), National Law Review's summary of it, the Sabin Center for Climate Change Law's Climate Litigation Updates of 6 November 2026 (climate.law.columbia.edu) for the 26 October rehearing petition, and APPA's report of that petition (publicpower.org, 30 October 2026). The court's docket itself was not read.
 - Summer MW: EIA-860M via PUDL nightly builds (October 2026). Fuel codes are EIA's (SUB, BIT coal; NG gas; DFO oil).
 - The same orders table, with an analysis of event episodes and MW-days, is kept in github.com/munimtechnologies/eia860m-slip (`data/doe_202c_orders.csv`, `docs/doe-202c-orders.md`). Other public trackers: EDF's coal plant mandates page and POWER Magazine's order log.
 - Questions or corrections: mv2@munimtech.com or an issue on the repo.

@@ -17,8 +17,9 @@ Standard library only; no network.
 
 Days are calendar dates; an order is in force from its start date through its expiry date,
 both counted. Times of day are shown but not used. A court action changes nothing in the
-in-force dates: they are the dates in DOE's orders. Exit codes: 0 found, 1 nothing matched,
-2 bad input.
+in-force dates: they are the dates in DOE's orders. In the court table, date_kind says what a
+date is: 'decided' (a ruling), 'filed' (a filing) or 'reported' (only a report's date is known).
+Exit codes: 0 found, 1 nothing matched, 2 bad input.
 """
 
 import argparse
@@ -30,7 +31,7 @@ import re
 import sys
 from collections import Counter
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 # The last date DOE's pages were read for this table. Orders issued later are not in it.
 TABLE_AS_OF = "2026-11-13"
