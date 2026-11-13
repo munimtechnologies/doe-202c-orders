@@ -1,5 +1,6 @@
-# Tests for skills/doe-202c-orders (orders_lookup.py 0.1.0, doe_202c_orders.csv,
-# doe_202c_plant_mw.csv, SKILL.md). Expected values were counted by hand from the table.
+# Tests for skills/doe-202c-orders (orders_lookup.py 0.2.0, doe_202c_orders.csv,
+# doe_202c_plant_mw.csv, doe_202c_court.csv, SKILL.md). Expected values were counted by hand
+# from the tables.
 # Copyright 2026 MV2, Munim, Inc. Apache-2.0. Made with AI agents working in MV2's name.
 import datetime as dt
 import io
@@ -33,6 +34,7 @@ class TestTables(unittest.TestCase):
     def setUpClass(cls):
         cls.rows = ol.load_orders()
         cls.plants = ol.load_plants()
+        cls.court = ol.load_court()
 
     def test_orders_table(self):
         self.assertEqual(len(self.rows), 87)
@@ -53,6 +55,7 @@ class TestTables(unittest.TestCase):
         newest = max(r["issued"] for r in self.rows)
         self.assertEqual(newest, D(2026, 11, 6))
         self.assertLessEqual(newest, D.fromisoformat(ol.TABLE_AS_OF))
+        self.assertEqual(ol.TABLE_AS_OF, "2026-11-13")
 
     def test_plants_table(self):
         self.assertEqual(sorted(self.plants), sorted(PLANT_ORDERS_NOV))
@@ -61,12 +64,31 @@ class TestTables(unittest.TestCase):
         self.assertEqual(self.plants["campbell"]["plant_id_eia"], "1710")
         self.assertEqual(self.plants["stanton"]["summer_mw"], 453.4)
 
+    def test_court_table(self):
+        self.assertEqual(len(self.court), 2)
+        by_order = {r["order"]: r for r in self.rows}
+        for c in self.court:
+            self.assertIn(c["order"], by_order)  # every action is on an order in the table
+            self.assertEqual(c["plant_key"], by_order[c["order"]]["plant_key"])
+            self.assertTrue(c["source"].startswith("https://"), c)
+            self.assertIn(c["date_kind"], ("decided", "reported"))
+            self.assertLessEqual(c["date"], D.fromisoformat(ol.COURT_AS_OF))
+            self.assertTrue(c["note"], c)
+        first, second = self.court
+        self.assertEqual((first["order"], first["date"], first["action"], first["case"][:11]),
+                         ("202-25-3", D(2026, 9, 11), "vacated", "No. 25-1159"))
+        # The vacated order had already expired when the court ruled.
+        self.assertLess(by_order["202-25-3"]["expires"], first["date"])
+        self.assertEqual((second["date_kind"], second["action"]),
+                         ("reported", "rehearing petition by DOE"))
+
 
 class TestLookups(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.rows = ol.load_orders()
         cls.plants = ol.load_plants()
+        cls.court = ol.load_court()
 
     def test_base_order(self):
         self.assertEqual(ol.base_order("202-26-01A"), "202-26-01")
@@ -74,7 +96,7 @@ class TestLookups(unittest.TestCase):
         self.assertEqual(ol.base_order("202-26-39"), "202-26-39")
 
     def test_in_force_november(self):
-        for day in (D(2026, 11, 8), D(2026, 11, 9)):
+        for day in (D(2026, 11, 8), D(2026, 11, 9), D(2026, 11, 13)):
             sel = ol.in_force(self.rows, day)
             self.assertEqual(len(sel), 10, day)
             self.assertEqual({r["plant_key"]: r["order"] for r in sel if r["kind"] == "plant"},
@@ -135,6 +157,18 @@ class TestLookups(unittest.TestCase):
         self.assertEqual(ol.successor(self.rows, by["202-25-1E"])["order"], "202-25-1F")
         self.assertEqual(ol.successor(self.rows, by["202-26-02"])["order"], "202-26-02A")
 
+    def test_court_for(self):
+        self.assertEqual(len(ol.court_for(self.court, orders=["202-25-3"])), 2)
+        self.assertEqual(len(ol.court_for(self.court, plant_key="campbell")), 2)
+        self.assertEqual(ol.court_for(self.court, orders=["202-26-39"]), [])
+        self.assertEqual(ol.court_for(self.court, plant_key="eddystone"), [])
+        # "202-25-3" must not match 202-25-3x orders or the other way round.
+        self.assertEqual(ol.court_for([{"order": "202-25-30", "plant_key": "x"}],
+                                      orders=["202-25-3"]), [])
+
+    def test_missing_court_file(self):
+        self.assertEqual(ol.load_court(os.path.join(SKILL, "no_such_file.csv")), [])
+
 
 class TestCli(unittest.TestCase):
     def test_plant(self):
@@ -143,6 +177,8 @@ class TestCli(unittest.TestCase):
         self.assertIn("J.H. Campbell (MI, EIA plant 1710", out)
         self.assertIn("under order 202-26-39, 6 days until its expiry date 2026-11-14", out)
         self.assertIn("Gaps between orders: none.", out)
+        self.assertIn("202-25-3  2026-09-11 decided: vacated, No. 25-1159", out)
+        self.assertIn("says nothing about any other order", out)
         self.assertNotIn("WARNING", out)
 
     def test_plant_json(self):
@@ -151,8 +187,14 @@ class TestCli(unittest.TestCase):
         res = json.loads(out)
         (p,) = res["plants"]
         self.assertEqual((p["plant_key"], p["current_order"], p["current_expiry"],
-                          p["days_until_expiry"], len(p["orders"]), len(p["gaps"])),
-                         ("wagner", "202-26-25A", "2026-11-17", 8, 4, 1))
+                          p["days_until_expiry"], len(p["orders"]), len(p["gaps"]), p["court"]),
+                         ("wagner", "202-26-25A", "2026-11-17", 8, 4, 1, []))
+        code, out = run("plant", "1710", "--date", "2026-11-13", "--json")
+        (p,) = json.loads(out)["plants"]
+        self.assertEqual([(c["order"], c["action"]) for c in p["court"]],
+                         [("202-25-3", "vacated"), ("202-25-3", "rehearing petition by DOE")])
+        # The vacatur changes nothing in the in-force dates: 202-26-39 is still current.
+        self.assertEqual((p["current_order"], p["days_until_expiry"]), ("202-26-39", 1))
 
     def test_unknown_plant(self):
         code, out = run("plant", "Brandon Shores", "--date", "2026-11-09")
@@ -162,9 +204,11 @@ class TestCli(unittest.TestCase):
     def test_in_force_after_as_of_warns(self):
         code, out = run("in-force", "--date", "2026-12-01")
         self.assertEqual(code, 0)
-        self.assertIn("WARNING: 2026-12-01 is after the table's as-of date (2026-11-08)", out)
+        self.assertIn("WARNING: 2026-12-01 is after the table's as-of date (2026-11-13)", out)
         # Campbell, Wagner, Eddystone and Stanton have expired in the table by then.
         self.assertIn("Plant orders cover 4 plant(s)", out)
+        code, out = run("in-force", "--date", "2026-11-13")
+        self.assertNotIn("WARNING", out)
 
     def test_expiring_cli(self):
         code, out = run("expiring", "--date", "2026-11-09", "--days", "14", "--json")
@@ -178,15 +222,35 @@ class TestCli(unittest.TestCase):
         code, out = run("order", "202-25-1e")
         self.assertEqual(code, 0)
         self.assertIn("Next order in the same chain: 202-25-1F.", out)
+        self.assertIn("Court actions in the court table: none.", out)
         code, out = run("order", "202-26-99")
         self.assertEqual(code, 1)
+
+    def test_order_court(self):
+        code, out = run("order", "202-25-3", "--json")
+        self.assertEqual(code, 0)
+        res = json.loads(out)
+        self.assertEqual(res["next_in_chain"], "202-25-7")
+        self.assertEqual([c["date"] for c in res["court"]], ["2026-09-11", "2026-10-30"])
+        self.assertEqual(res["court_as_of"], "2026-11-13")
+
+    def test_court_cli(self):
+        code, out = run("court")
+        self.assertEqual(code, 0)
+        self.assertIn("Court actions on 202(c) orders in the court table: 2.", out)
+        self.assertIn("https://media.cadc.uscourts.gov/opinions/docs/2026/09/25-1159.pdf", out)
+        code, out = run("court", "--json")
+        self.assertEqual(len(json.loads(out)["court"]), 2)
 
     def test_summary(self):
         code, out = run("summary", "--date", "2026-11-09", "--json")
         self.assertEqual(code, 0)
         res = json.loads(out)
-        self.assertEqual((res["orders"], res["by_kind"], res["in_force"], res["mw"]["summer_mw"]),
-                         (87, {"plant": 34, "event": 38, "island": 15}, 10, 4849.9))
+        self.assertEqual((res["orders"], res["by_kind"], res["in_force"], res["mw"]["summer_mw"],
+                          res["court_actions"], res["orders_vacated"]),
+                         (87, {"plant": 34, "event": 38, "island": 15}, 10, 4849.9, 2, ["202-25-3"]))
+        code, out = run("summary", "--date", "2026-11-09")
+        self.assertIn("orders vacated by a court: 202-25-3.", out)
 
     def test_bad_date(self):
         code, _ = run("in-force", "--date", "11/09/2026")
@@ -201,9 +265,19 @@ class TestSkillDoc(unittest.TestCase):
         self.assertIn("\nlicense: Apache-2.0\n", text.split("\n---\n", 1)[0] + "\n")
         self.assertIn("made with AI agents", text)
         self.assertIn(ol.TABLE_AS_OF, text)
+        self.assertNotIn("2026-11-08", text)
         self.assertIn("orders_lookup.py %s" % ol.__version__, text)
+        self.assertIn("doe_202c_court.csv", text)
+        self.assertIn("No. 25-1159", text)
         for bad in ("git clone", "curl ", "wget ", "pip install", "npx "):
             self.assertNotIn(bad, text)
+
+    def test_readme(self):
+        with open(os.path.join(HERE, "README.md"), encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn("0.2.0", text)
+        self.assertIn("Apache-2.0", text)
+        self.assertNotIn("MIT", text)
 
 
 if __name__ == "__main__":

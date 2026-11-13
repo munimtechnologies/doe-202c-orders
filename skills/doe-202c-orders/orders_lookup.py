@@ -3,18 +3,21 @@
 Copyright 2026 MV2, Munim, Inc. Apache-2.0. Made with AI agents working in MV2's name.
 
 Reads doe_202c_orders.csv (one row per order, extension or amendment, transcribed from DOE's
-2025 and 2026 202(c) order pages, plus one amended order that only ERCOT's page lists) and
-doe_202c_plant_mw.csv (summer MW of the units each plant order covers), both next to this file.
+2025 and 2026 202(c) order pages, plus one amended order that only ERCOT's page lists),
+doe_202c_plant_mw.csv (summer MW of the units each plant order covers) and doe_202c_court.csv
+(court actions on orders found in the opinions and in reporting), all next to this file.
 Standard library only; no network.
 
     python orders_lookup.py in-force [--date 2026-11-09] [--kind plant|event|island] [--json]
     python orders_lookup.py expiring [--date 2026-11-09] [--days 30] [--json]
     python orders_lookup.py plant <plant key, name or EIA plant id> [--date ...] [--json]
     python orders_lookup.py order <order number, e.g. 202-26-39> [--json]
+    python orders_lookup.py court [--json]
     python orders_lookup.py summary [--date ...] [--json]
 
 Days are calendar dates; an order is in force from its start date through its expiry date,
-both counted. Times of day are shown but not used. Exit codes: 0 found, 1 nothing matched,
+both counted. Times of day are shown but not used. A court action changes nothing in the
+in-force dates: they are the dates in DOE's orders. Exit codes: 0 found, 1 nothing matched,
 2 bad input.
 """
 
@@ -27,20 +30,27 @@ import re
 import sys
 from collections import Counter
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # The last date DOE's pages were read for this table. Orders issued later are not in it.
-TABLE_AS_OF = "2026-11-08"
+TABLE_AS_OF = "2026-11-13"
+# The last date court actions were looked for. Only actions found by then are in the court table.
+COURT_AS_OF = "2026-11-13"
 DOE_PAGES = ("https://www.energy.gov/ceser/2026-doe-202c-orders",
              "https://www.energy.gov/ceser/2025-doe-202c-orders")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ORDERS = os.path.join(HERE, "doe_202c_orders.csv")
 PLANT_MW = os.path.join(HERE, "doe_202c_plant_mw.csv")
+COURT = os.path.join(HERE, "doe_202c_court.csv")
 KINDS = ("plant", "event", "island")
 COAL_FUELS = frozenset({"BIT", "SUB", "LIG", "ANT", "RC", "WC", "SGC"})
 SHOW = ("order", "kind", "area", "recipient", "plant_key", "plant", "issued", "effective",
         "expires", "expires_time", "note", "source")
+COURT_SHOW = ("order", "plant_key", "date", "date_kind", "court", "case", "action", "source", "note")
+COURT_LIMIT = ("Court actions found as of %s; pending cases and actions not yet found are not "
+               "listed. A court action on one order says nothing about any other order, and the "
+               "in-force dates here are the dates in DOE's orders." % COURT_AS_OF)
 
 
 def _date(s):
@@ -65,6 +75,17 @@ def load_plants(path=PLANT_MW):
             r["fuel"] = r["fuel"].strip().upper()
             out[r["plant_key"].strip()] = r
         return out
+
+
+def load_court(path=COURT):
+    """Court actions, oldest first. A missing file means no court table (older installs)."""
+    if not os.path.exists(path):
+        return []
+    with open(path, newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    for r in rows:
+        r["date"] = _date(r["date"])
+    return sorted(rows, key=lambda r: (r["date"], r["order"]))
 
 
 def base_order(order):
@@ -161,6 +182,13 @@ def renewal_note(rows):
     return text + " Description of past orders only, not a forecast."
 
 
+def court_for(court, orders=None, plant_key=None):
+    """Court actions on any of `orders` (order numbers) or on any order of `plant_key`."""
+    want = {_norm(o) for o in (orders or [])}
+    return [c for c in court if _norm(c["order"]) in want
+            or (plant_key is not None and c["plant_key"] == plant_key)]
+
+
 def mw_in_force(rows, plants, day):
     on = sorted({r["plant_key"] for r in in_force(rows, day, "plant")})
     return {"plants": on,
@@ -170,19 +198,26 @@ def mw_in_force(rows, plants, day):
             "missing_mw": [k for k in on if k not in plants]}
 
 
-def summary(rows, plants, day):
+def summary(rows, plants, day, court=()):
     by_kind = Counter(r["kind"] for r in rows)
     return {"orders": len(rows),
             "by_year": {str(y): n for y, n in sorted(Counter(r["issued"].year for r in rows).items())},
             "by_kind": {k: by_kind.get(k, 0) for k in KINDS},
             "plants": sorted({r["plant_key"] for r in rows if r["kind"] == "plant"}),
             "in_force": len(in_force(rows, day)),
-            "mw": mw_in_force(rows, plants, day)}
+            "mw": mw_in_force(rows, plants, day),
+            "court_actions": len(court),
+            "orders_vacated": sorted({c["order"] for c in court if c["action"] == "vacated"})}
 
 
 def row_out(r):
     return {c: (r[c].isoformat() if isinstance(r.get(c), dt.date) else (r.get(c) or ""))
             for c in SHOW}
+
+
+def court_out(c):
+    return {k: (c[k].isoformat() if isinstance(c.get(k), dt.date) else (c.get(k) or ""))
+            for k in COURT_SHOW}
 
 
 def header(day):
@@ -208,14 +243,26 @@ def line(r, day=None):
     return s
 
 
-def main(argv=None, rows=None, plants=None):
+def court_line(c):
+    return "%s  %s %s: %s, %s. Source: %s" % (c["order"], c["date"], c["date_kind"], c["action"],
+                                              c["case"], c["source"])
+
+
+def court_text(sel):
+    if not sel:
+        return ["  Court actions in the court table: none. " + COURT_LIMIT]
+    return (["  Court actions in the court table:"] + ["    " + court_line(c) for c in sel]
+            + ["    " + COURT_LIMIT])
+
+
+def main(argv=None, rows=None, plants=None, court=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("in-force", "expiring", "plant", "order", "summary"):
+    for name in ("in-force", "expiring", "plant", "order", "court", "summary"):
         p = sub.add_parser(name)
         if name in ("plant", "order"):
             p.add_argument("query")
-        if name != "order":
+        if name not in ("order", "court"):
             p.add_argument("--date", default=dt.date.today().isoformat())
         if name == "in-force":
             p.add_argument("--kind", choices=KINDS)
@@ -233,7 +280,8 @@ def main(argv=None, rows=None, plants=None):
         return 2
     rows = load_orders() if rows is None else rows
     plants = load_plants() if plants is None else plants
-    res, text = {"version": __version__, "table_as_of": TABLE_AS_OF,
+    court = load_court() if court is None else court
+    res, text = {"version": __version__, "table_as_of": TABLE_AS_OF, "court_as_of": COURT_AS_OF,
                  "date": day.isoformat() if day else None}, header(day)
     found = True
 
@@ -268,6 +316,7 @@ def main(argv=None, rows=None, plants=None):
             c, p = chain(rows, k), plants[k]
             cur = c["current"]
             live = cur is not None and cur["effective"] <= day <= cur["expires"]
+            acts = court_for(court, plant_key=k)
             res["plants"].append({
                 "plant_key": k, "plant": p["plant"], "state": p["state"],
                 "plant_id_eia": p["plant_id_eia"], "generators": p["generators"].split("|"),
@@ -276,7 +325,8 @@ def main(argv=None, rows=None, plants=None):
                 "current_order": cur["order"] if cur else None,
                 "current_expiry": cur["expires"].isoformat() if cur else None,
                 "in_force_on_date": live,
-                "days_until_expiry": (cur["expires"] - day).days if live else None})
+                "days_until_expiry": (cur["expires"] - day).days if live else None,
+                "court": [court_out(a) for a in acts]})
             text.append("%s (%s, EIA plant %s, generators %s, %s, %.1f summer MW): %d orders since %s."
                         % (p["plant"], p["state"], p["plant_id_eia"], p["generators"].replace("|", ", "),
                            p["fuel"], p["summer_mw"], len(c["orders"]), c["first_start"]))
@@ -287,22 +337,33 @@ def main(argv=None, rows=None, plants=None):
             text.append("  On %s: %s." % (day, "under order %s, %d days until its expiry date %s"
                                           % (cur["order"], (cur["expires"] - day).days, cur["expires"])
                                           if live else "no order of this plant in force in the table"))
+            text += court_text(acts)
     elif args.cmd == "order":
         q = _norm(args.query)
         sel = [r for r in rows if _norm(r["order"]) == q]
         res["orders"] = [row_out(r) for r in sel]
         if sel:
             nxt = successor(rows, sel[0])
+            acts = court_for(court, orders=[sel[0]["order"]])
             res["next_in_chain"] = nxt["order"] if nxt else None
+            res["court"] = [court_out(a) for a in acts]
             text += ["  " + line(r) for r in sel]
             text.append("  Next order in the same chain: %s." % (nxt["order"] if nxt else
                                                                  "none in the table"))
             text.append("  Source: %s" % sel[0]["source"])
+            text += court_text(acts)
         else:
             text.append("No order %r in the table (as of %s)." % (args.query, TABLE_AS_OF))
             found = False
+    elif args.cmd == "court":
+        res["court"] = [court_out(c) for c in court]
+        res["court_limit"] = COURT_LIMIT
+        text.append("Court actions on 202(c) orders in the court table: %d." % len(court))
+        text += ["  " + court_line(c) for c in court]
+        text.append(COURT_LIMIT)
+        found = bool(court)
     else:
-        s = summary(rows, plants, day)
+        s = summary(rows, plants, day, court)
         res.update(s)
         res["renewal_note"] = renewal_note(rows)
         text.append("%d orders, extensions and amendments (by year issued: %s; by kind: %s)."
@@ -312,6 +373,8 @@ def main(argv=None, rows=None, plants=None):
         text.append("In force on %s: %d order(s); plant orders cover %.1f summer MW (%.1f coal)."
                     % (day, s["in_force"], s["mw"]["summer_mw"], s["mw"]["coal_summer_mw"]))
         text.append(res["renewal_note"])
+        text.append("Court actions in the court table: %d; orders vacated by a court: %s."
+                    % (s["court_actions"], ", ".join(s["orders_vacated"]) or "none"))
 
     if args.json:
         print(json.dumps(res, indent=1))
