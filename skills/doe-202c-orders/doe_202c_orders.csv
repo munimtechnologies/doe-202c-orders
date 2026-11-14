@@ -82,7 +82,8 @@ order,kind,area,recipient,plant_key,plant,issued,effective,expires,expires_time,
 202-26-46,plant,MISO,NIPSCO and MISO,schahfer,R.M. Schahfer,2026-09-18,2026-09-20,2026-12-18,,https://www.energy.gov/ceser/2026-doe-202c-orders,
 202-26-47,plant,MISO,CenterPoint Energy and MISO,culley,F.B. Culley,2026-09-18,2026-09-20,2026-12-18,,https://www.energy.gov/ceser/2026-doe-202c-orders,
 202-26-48,event,Duke,Duke Energy Carolinas,,,2026-09-18,2026-09-18,2026-09-21,,https://www.energy.gov/ceser/2026-doe-202c-orders,
-202-26-49,plant,West,Tri-State and co-owners,craig,Craig,2026-09-25,2026-09-27,2026-12-25,,https://www.energy.gov/ceser/2026-doe-202c-orders,
+202-26-49,plant,West,Tri-State and co-owners,craig,Craig,2026-09-25,2026-09-27,2026-12-25,,https://www.energy.gov/ceser/2026-doe-202c-orders,"dispatch wording: SPP to employ economic dispatch of Craig Unit 1 'only during hours necessary to meet the emergency' and to minimize costs (DOE's order text); 202-26-31 said only 'to minimize costs to ratepayers'"
 202-26-50,event,PJM,PJM,,,2026-10-12,2026-10-13,2026-10-16,,https://www.energy.gov/ceser/2026-doe-202c-orders,
 202-25-1F,island,Puerto Rico,PREPA,,,2026-11-06,2026-11-08,2027-02-05,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
 202-25-2F,island,Puerto Rico,PREPA,,,2026-11-06,2026-11-08,2027-02-05,,https://www.energy.gov/ceser/2026-doe-202c-orders,extension
+202-26-51,plant,MISO,MISO with Consumers Energy,campbell,J.H. Campbell,2026-11-13,2026-11-15,2027-02-12,,https://www.energy.gov/ceser/2026-doe-202c-orders,"first Campbell order issued after the D.C. Circuit's 2026-09-11 ruling; dispatch wording: MISO to employ economic dispatch 'only during the hours necessary to meet the emergency' (DOE's order page); 202-26-39 said 'to minimize costs to ratepayers'"

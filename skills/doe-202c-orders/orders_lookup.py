@@ -8,10 +8,10 @@ doe_202c_plant_mw.csv (summer MW of the units each plant order covers) and doe_2
 (court actions on orders found in the opinions and in reporting), all next to this file.
 Standard library only; no network.
 
-    python orders_lookup.py in-force [--date 2026-11-09] [--kind plant|event|island] [--json]
-    python orders_lookup.py expiring [--date 2026-11-09] [--days 30] [--json]
+    python orders_lookup.py in-force [--date 2026-11-14] [--kind plant|event|island] [--json]
+    python orders_lookup.py expiring [--date 2026-11-14] [--days 30] [--json]
     python orders_lookup.py plant <plant key, name or EIA plant id> [--date ...] [--json]
-    python orders_lookup.py order <order number, e.g. 202-26-39> [--json]
+    python orders_lookup.py order <order number, e.g. 202-26-51> [--json]
     python orders_lookup.py court [--json]
     python orders_lookup.py summary [--date ...] [--json]
 
@@ -19,6 +19,8 @@ Days are calendar dates; an order is in force from its start date through its ex
 both counted. Times of day are shown but not used. A court action changes nothing in the
 in-force dates: they are the dates in DOE's orders. In the court table, date_kind says what a
 date is: 'decided' (a ruling), 'filed' (a filing) or 'reported' (only a report's date is known).
+For a plant, the order in force on the date is the current one; a renewal that DOE has issued
+but that starts later is shown as the next order, never as the current one.
 Exit codes: 0 found, 1 nothing matched, 2 bad input.
 """
 
@@ -31,12 +33,12 @@ import re
 import sys
 from collections import Counter
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 # The last date DOE's pages were read for this table. Orders issued later are not in it.
-TABLE_AS_OF = "2026-11-13"
+TABLE_AS_OF = "2026-11-14"
 # The last date court actions were looked for. Only actions found by then are in the court table.
-COURT_AS_OF = "2026-11-13"
+COURT_AS_OF = "2026-11-14"
 DOE_PAGES = ("https://www.energy.gov/ceser/2026-doe-202c-orders",
              "https://www.energy.gov/ceser/2025-doe-202c-orders")
 
@@ -142,7 +144,8 @@ def find_plants(plants, query):
 
 
 def chain(rows, key):
-    """A plant's orders in order of start, with gaps between one order's expiry and the next start."""
+    """A plant's orders in order of start, with gaps between one order's expiry and the next start.
+    'current' is the latest order in the table; use plant_status() for the order in force on a day."""
     seq = sorted((r for r in rows if r["kind"] == "plant" and r["plant_key"] == key),
                  key=lambda r: (r["effective"], r["order"]))
     gaps = []
@@ -155,6 +158,24 @@ def chain(rows, key):
     return {"plant_key": key, "orders": seq, "gaps": gaps,
             "first_start": seq[0]["effective"] if seq else None,
             "current": seq[-1] if seq else None}
+
+
+def plant_status(orders, day):
+    """For a plant's orders (from chain()) on `day`: the order in force ('current', None if none),
+    the next order in the table that starts after `day` ('next'), and the last day the orders cover
+    without an uncovered day, counting from `day` ('covered_through', None if none is in force)."""
+    seq = sorted(orders, key=lambda r: (r["effective"], r["order"]))
+    now = [r for r in seq if r["effective"] <= day <= r["expires"]]
+    cur = now[-1] if now else None
+    later = [r for r in seq if r["effective"] > day]
+    nxt = later[0] if later else None
+    through = None
+    if cur is not None:
+        through = max(r["expires"] for r in now)
+        for r in later:
+            if r["effective"] <= through + dt.timedelta(days=1):
+                through = max(through, r["expires"])
+    return {"current": cur, "next": nxt, "covered_through": through}
 
 
 def renewals(rows):
@@ -256,6 +277,25 @@ def court_text(sel):
             + ["    " + COURT_LIMIT])
 
 
+def status_text(day, st):
+    cur, nxt, through = st["current"], st["next"], st["covered_through"]
+    if cur is not None:
+        s = ("On %s: under order %s, %d days until its expiry date %s"
+             % (day, cur["order"], (cur["expires"] - day).days, cur["expires"]))
+        if nxt is not None:
+            s += ("; next order %s (issued %s) in force %s to %s"
+                  % (nxt["order"], nxt["issued"], nxt["effective"], nxt["expires"]))
+        if through != cur["expires"]:
+            s += "; covered without a break through %s" % through
+        elif nxt is not None:
+            s += "; %d uncovered day(s) before it starts" % ((nxt["effective"] - cur["expires"]).days - 1)
+        return s + "."
+    s = "On %s: no order of this plant in force in the table" % day
+    if nxt is not None:
+        s += "; next order %s (issued %s) starts %s" % (nxt["order"], nxt["issued"], nxt["effective"])
+    return s + "."
+
+
 def main(argv=None, rows=None, plants=None, court=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -315,8 +355,11 @@ def main(argv=None, rows=None, plants=None, court=None):
             found = False
         for k in keys:
             c, p = chain(rows, k), plants[k]
-            cur = c["current"]
-            live = cur is not None and cur["effective"] <= day <= cur["expires"]
+            st = plant_status(c["orders"], day)
+            live = st["current"] is not None
+            # The order in force on the date; if none, the latest order in the table (as before).
+            cur = st["current"] if live else c["current"]
+            nxt = st["next"]
             acts = court_for(court, plant_key=k)
             res["plants"].append({
                 "plant_key": k, "plant": p["plant"], "state": p["state"],
@@ -327,6 +370,9 @@ def main(argv=None, rows=None, plants=None, court=None):
                 "current_expiry": cur["expires"].isoformat() if cur else None,
                 "in_force_on_date": live,
                 "days_until_expiry": (cur["expires"] - day).days if live else None,
+                "next_order": nxt["order"] if nxt else None,
+                "next_effective": nxt["effective"].isoformat() if nxt else None,
+                "covered_through": st["covered_through"].isoformat() if st["covered_through"] else None,
                 "court": [court_out(a) for a in acts]})
             text.append("%s (%s, EIA plant %s, generators %s, %s, %.1f summer MW): %d orders since %s."
                         % (p["plant"], p["state"], p["plant_id_eia"], p["generators"].replace("|", ", "),
@@ -335,9 +381,7 @@ def main(argv=None, rows=None, plants=None, court=None):
             text.append("  Gaps between orders: %s." % ("; ".join(
                 "%s to %s (%d days, between %s and %s)" % (g["from"], g["to"], g["days"], g["after"],
                                                            g["before"]) for g in c["gaps"]) or "none"))
-            text.append("  On %s: %s." % (day, "under order %s, %d days until its expiry date %s"
-                                          % (cur["order"], (cur["expires"] - day).days, cur["expires"])
-                                          if live else "no order of this plant in force in the table"))
+            text.append("  " + status_text(day, st))
             text += court_text(acts)
     elif args.cmd == "order":
         q = _norm(args.query)
