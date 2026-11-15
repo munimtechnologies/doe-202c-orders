@@ -11,8 +11,13 @@ By MV2 of Munim, Inc. (mv2@munimtech.com). Made with AI agents working in MV2's 
 - [`doe_202c_orders.csv`](skills/doe-202c-orders/doe_202c_orders.csv): one row per order (`order, kind, area, recipient, plant_key, plant, issued, effective, expires, expires_time, source, note`), as of 14 November 2026.
 - [`doe_202c_plant_mw.csv`](skills/doe-202c-orders/doe_202c_plant_mw.csv): for the 8 plants with plant orders, the EIA plant id, the generators the orders cover, fuel and summer MW.
 - [`doe_202c_court.csv`](skills/doe-202c-orders/doe_202c_court.csv): court actions on orders in the table (`order, plant_key, date, date_kind, court, case, action, source, note`), as of 14 November 2026. `date_kind` is `decided` (a ruling), `filed` (a filing) or `reported` (only a report's date is known).
+- [`data/doe_202c_renewals.csv`](data/doe_202c_renewals.csv): one row per renewal of a plant or island order, with the days between the new order's issue date and the old order's last day (`lead_days`) and any uncovered days (`gap_days`). It is rebuilt from the orders table by `test_renewal_timing.py`. See [`docs/renewal-timing-plan.md`](docs/renewal-timing-plan.md).
 
 An earlier copy of the orders table (as of 13 November 2026), with an analysis of event episodes and MW-days, is kept in [munimtechnologies/eia860m-slip](https://github.com/munimtechnologies/eia860m-slip) (`data/doe_202c_orders.csv`, `docs/doe-202c-orders.md`); the copy here is the newer one. Other public trackers cover parts of this: [EDF's coal plant mandates page](https://coalcosts.edf.org/mechanisms/202c-orders/) (coal units and costs) and [POWER Magazine's order log](https://www.powermag.com/doe-has-issued-more-than-40-section-202c-emergency-orders-since-may-2025-heres-an-updated-log/).
+
+## Renewal timing (pre-registration renewal-timing-1, 15 November 2026)
+
+Of 27 renewals of plant orders, 26 left no day uncovered, and every one of those 26 was issued 0-3 days before the old order's last day (9 on the last day, 10 one day before, 4 two days before, 3 three days before). None was issued late. The exception is Wagner Unit 4, whose order lapsed for 141 days (1 January to 21 May 2026). Since March 2026, every renewal has started the day after the old order ended. Before that, renewals started on the old order's last day. PREPA's island orders follow the same pattern (10 renewals, 0-2 days ahead). Guam's only order ended on 4 November 2026, and no successor was listed on 15 November. [`docs/renewal-timing-plan.md`](docs/renewal-timing-plan.md) states five predictions, made before the outcomes are known, for the orders ending between 17 November (Wagner) and 25 December 2026 (Craig). They will be scored after 28 December 2026.
 
 ## Campbell's November 2026 renewal
 
@@ -41,9 +46,9 @@ python orders_lookup.py in-force --date 2026-01-26 --kind event --json
 python orders_lookup.py court
 ```
 
-On 14 November 2026 the table has 10 orders in force: the 8 plant orders (4,849.9 summer MW, 3,692.9 MW of it coal), with Campbell on the last day of 202-26-39, and PREPA's 202-25-1F and 202-25-2F. From 15 November Campbell is under 202-26-51. Wagner's 202-26-25A expires 17 November, Eddystone's 202-26-40 20 November and Stanton's 202-26-42 30 November; no renewal of these was on DOE's page on 14 November.
+On 14 November 2026 the table has 10 orders in force: the 8 plant orders (4,849.9 summer MW, 3,692.9 MW of it coal), with Campbell on the last day of 202-26-39, and PREPA's 202-25-1F and 202-25-2F. From 15 November Campbell is under 202-26-51. Wagner's 202-26-25A expires 17 November, Eddystone's 202-26-40 20 November and Stanton's 202-26-42 30 November; no renewal of these was on DOE's page on 15 November.
 
-Tests: `python -m unittest -v test_orders_lookup`.
+Tests: `python -m unittest -v test_orders_lookup test_renewal_timing`.
 
 ## Updates
 
@@ -51,6 +56,7 @@ The table is updated when DOE posts a new order, and `TABLE_AS_OF` in `orders_lo
 
 ## Changes
 
+- 15 November 2026 (no release): renewal-timing table (`data/doe_202c_renewals.csv`), test, and pre-registered predictions (`docs/renewal-timing-plan.md`). The skill and lookup are unchanged.
 - 0.2.2 (14 November 2026): Campbell's renewal, Order No. 202-26-51 (issued 13 November, in force 15 November 2026 to 12 February 2027), added; 88 orders, 27 plant renewals (26 with no uncovered day). Fixed `plant`: once a renewal was in the table before its start date, the lookup took the newest order as current and said no order was in force on the old order's last days; it now reports the order in force on the date, plus `next_order`, `next_effective` and `covered_through`. The `note` column records the dispatch wording of 202-26-49 and 202-26-51 ("only during (the) hours necessary to meet the emergency"). Skill traps 3 and 9 are new. Court table re-checked: no ruling on DOE's rehearing petition found as of 14 November.
 - 0.2.1 (13 November 2026): DOE's rehearing petition in No. 25-1159 is now dated by its filing, 26 October 2026 (`date_kind` `filed`, source: the Sabin Center's Climate Litigation Updates), instead of by APPA's 30 October report, which is still cited in the note; no ruling on the petition was found as of 13 November. Skill trap 7 and the sources updated.
 - 0.2.0 (13 November 2026): court actions table (`doe_202c_court.csv`) with the D.C. Circuit's vacatur of 202-25-3 and DOE's rehearing petition; `court` command; `order` and `plant` show court actions; skill trap 7 rewritten; tables as of 13 November 2026 (DOE's page showed no order issued after 6 November).
