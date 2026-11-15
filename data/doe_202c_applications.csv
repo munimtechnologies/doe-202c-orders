@@ -1,0 +1,36 @@
+order,plant_key,issued,application_posted,applicant,application_date,application_title,lead_days,page_url,page_last_updated,checked_on,note
+202-25-3,campbell,2025-05-23,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-midcontinent-independent-system-operator-miso,2026-07-15,2026-11-15,
+202-25-4,eddystone,2025-05-30,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-pjm-interconnection,2026-07-15,2026-11-15,
+202-25-6,wagner,2025-07-28,yes,PJM,2025-07-21,PJM's 202(c) Application,7,https://www.energy.gov/ceser/federal-power-act-section-202c-pjm-interconnection-0,2026-07-15,2026-11-15,also an Application Appendix of the same date
+202-25-7,campbell,2025-08-20,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-midcontinent-independent-system-operator-miso-0,2026-07-15,2026-11-15,Consumers Energy filed a limited request for clarification on 2025-09-19 (after the order)
+202-25-8,eddystone,2025-08-28,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-pjm-interconnection-pjm,2026-07-15,2026-11-15,
+202-25-6A,wagner,2025-10-24,yes,PJM,2025-10-10,PJM's 202(c) Order No. 202-25-6A Application,14,https://www.energy.gov/ceser/federal-power-act-section-202c-pjm-interconnection-0,2026-07-15,2026-11-15,file names call it a Wagner Unit 4 Renewal Request; also an Application Appendix of the same date
+202-25-9,campbell,2025-11-18,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-midcontinent-independent-system-operator-miso-order-no-202-25,2026-07-15,2026-11-15,
+202-25-10,eddystone,2025-11-25,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-pjm-interconnection-pjm-order-no-202-25-10,2026-07-15,2026-11-15,
+202-25-11,centralia,2025-12-16,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-transalta-order-no-202-25-11,2026-10-16,2026-11-15,
+202-25-12,schahfer,2025-12-23,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-schahfer-order-no-202-25-12,2026-07-15,2026-11-15,
+202-25-13,culley,2025-12-23,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-culley-order-no-202-25-13,2026-07-15,2026-11-15,
+202-25-14,craig,2025-12-30,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-craig-order-no-202-25-14,2026-07-15,2026-11-15,first owner-side filings after the order: Public Service Company of Colorado motion to intervene 2026-01-26; Tri-State and Platte River rehearing request 2026-01-29
+202-26-16,campbell,2026-02-17,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-midcontinent-independent-system-operator-miso-order-no-202-26,2026-07-15,2026-11-15,
+202-26-17,eddystone,2026-02-23,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-pjm-interconnection-llc-pjm-order-no-202-26-17,2026-07-15,2026-11-15,
+202-26-18,centralia,2026-03-16,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-transalta-order-no-202-26-18,2026-10-16,2026-11-15,
+202-26-19,schahfer,2026-03-23,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-schahfer-order-no-202-26-19,2026-10-16,2026-11-15,
+202-26-20,culley,2026-03-23,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-culley-order-no-202-26-20,2026-10-16,2026-11-15,
+202-26-21,craig,2026-03-30,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-craig-order-no-202-26-21,2026-09-21,2026-11-15,Tri-State and Platte River rehearing request 2026-04-29 (after the order)
+202-26-22,campbell,2026-05-18,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-midcontinent-independent-system-operator-miso-order-no-202-0,2026-07-20,2026-11-15,the page dates the order document 2026-05-19
+202-26-24,eddystone,2026-05-21,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-pjm-interconnection-llc-pjm-order-no-202-26-24,2026-07-20,2026-11-15,
+202-26-25,wagner,2026-05-21,yes,PJM,2026-05-21,PJM's 202(c) Application,0,https://www.energy.gov/ceser/federal-power-act-section-202c-pjm-interconnection-llc-pjm-order-no-202-26-25,2026-08-19,2026-11-15,also an Exhibit A of the same date; PJM's own copy is named 20260520-wagner-3-and-4-202c-request.pdf (file content not read)
+202-26-26,stanton,2026-06-04,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-orlando-utilities-commission-ouc-order-no-202-26-26,2026-10-01,2026-11-15,
+202-26-28,centralia,2026-06-12,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-transalta-order-no-202-26-28,2026-08-13,2026-11-15,
+202-26-29,schahfer,2026-06-18,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-schahfer-order-no-202-26-29,2026-08-18,2026-11-15,
+202-26-30,culley,2026-06-18,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-culley-order-no-202-26-30,2026-08-18,2026-11-15,
+202-26-31,craig,2026-06-26,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-craig-order-no-202-26-31,2026-08-25,2026-11-15,Tri-State and Platte River rehearing request 2026-07-24 (after the order)
+202-26-39,campbell,2026-08-14,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-midcontinent-independent-system-operator-miso-order-no-202-1,2026-10-16,2026-11-15,
+202-26-25A,wagner,2026-08-19,yes,PJM,2026-08-04,PJM's 202(c) Renewal Application,15,https://www.energy.gov/ceser/federal-power-act-section-202c-pjm-interconnection-llc-pjm-order-no-202-26-25,2026-08-19,2026-11-15,also a Renewal Application Exhibit A of the same date
+202-26-40,eddystone,2026-08-21,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-pjm-interconnection-llc-pjm-order-no-202-26-40,2026-10-22,2026-11-15,
+202-26-42,stanton,2026-09-01,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-orlando-utilities-commission-ouc-order-no-202-26-42,2026-11-03,2026-11-15,
+202-26-44,centralia,2026-09-11,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-transalta-order-no-202-26-44,2026-11-10,2026-11-15,
+202-26-46,schahfer,2026-09-18,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-schahfer-order-no-202-26-46,2026-11-05,2026-11-15,
+202-26-47,culley,2026-09-18,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-culley-order-no-202-26-47,2026-11-04,2026-11-15,
+202-26-49,craig,2026-09-25,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-craig-order-no-202-26-49-0,2026-11-12,2026-11-15,Tri-State and Platte River rehearing request 2026-10-23 (after the order)
+202-26-51,campbell,2026-11-13,no,,,,,https://www.energy.gov/ceser/federal-power-act-section-202c-midcontinent-independent-system-operator-miso-order-no-202-2,2026-11-13,2026-11-15,
