@@ -1,4 +1,4 @@
-# Tests for skills/doe-202c-orders (orders_lookup.py 0.3.0, doe_202c_orders.csv,
+# Tests for skills/doe-202c-orders (orders_lookup.py 0.3.1, doe_202c_orders.csv,
 # doe_202c_plant_mw.csv, doe_202c_court.csv, SKILL.md). Expected values were counted by hand
 # from the tables.
 # Copyright 2026 MV2, Munim, Inc. Apache-2.0. Made with AI agents working in MV2's name.
@@ -22,8 +22,30 @@ PLANT_ORDERS_NOV = {"campbell": "202-26-39", "wagner": "202-26-25A", "eddystone"
                     "culley": "202-26-47", "craig": "202-26-49"}
 CAMPBELL = ["202-25-3", "202-25-7", "202-25-9", "202-26-16", "202-26-22", "202-26-39", "202-26-51"]
 PETITIONED = ["202-25-11", "202-25-12", "202-25-13", "202-25-14", "202-25-3", "202-25-4",
-              "202-26-16", "202-26-18", "202-26-19", "202-26-20"]
-PLANTS_PETITIONED = ["campbell", "centralia", "craig", "culley", "eddystone", "schahfer"]
+              "202-25-7", "202-25-8", "202-25-9", "202-26-16", "202-26-18", "202-26-19",
+              "202-26-20", "202-26-22"]
+PLANTS_PETITIONED = ["campbell", "centralia", "craig", "culley", "eddystone", "schahfer", "stanton"]
+STATUS = {"decided": 3, "abeyance": 21, "briefing": 3, "no order seen": 8, "not in archive": 2}
+OVERVIEW = ("Petitions for review found: 37 (35 docket numbers), naming 14 of 35 plant orders; "
+            "10 name no order in the sources (plant inferred). Plants: campbell, centralia, craig, "
+            "culley, eddystone, schahfer, stanton. Petition status: decided 3, abeyance 21, "
+            "briefing 3, no order seen 8, not in archive 2. Court rulings found: 1.")
+NAMED_DOCKETS = {
+    ("202-25-3", "25-1159"), ("202-25-3", "25-1160"), ("202-25-3", "25-1162"),
+    ("202-25-4", "25-1193"), ("202-25-4", "25-1194"),
+    ("202-25-7", "25-1198"), ("202-25-7", "25-1202"), ("202-25-7", "25-1254"),
+    ("202-25-8", "25-1287"), ("202-25-8", "25-1288"),
+    ("202-25-9", "26-1024"), ("202-25-9", "26-1028"),
+    ("202-25-11", "26-1252"), ("202-25-11", "26-1261"),
+    ("202-25-12", "26-1056"), ("202-25-13", "26-1057"),
+    ("202-25-14", "26-1059"), ("202-25-14", "26-1060"),
+    ("202-25-12", "26-1075"), ("202-25-13", "26-1076"),
+    ("202-25-12", "26-1077"), ("202-25-13", "26-1078"),
+    ("202-26-19", "26-1186"), ("202-26-19", "26-1187"),
+    ("202-26-20", "26-1186"), ("202-26-20", "26-1187"),
+    ("202-26-22", "26-1233")}
+UNNAMED_DOCKETS = {"26-1026", "26-1101", "26-3781", "26-1158", "26-1167", "26-1159", "26-1224",
+                   "26-1256", "26-1255", "26-1273"}
 
 
 def run(*argv):
@@ -65,7 +87,6 @@ class TestTables(unittest.TestCase):
         self.assertIn("only during the hours necessary to meet the emergency", r["note"])
         (craig,) = [x for x in self.rows if x["order"] == "202-26-49"]
         self.assertIn("only during hours necessary to meet the emergency", craig["note"])
-        # No other row carries the dispatch wording note.
         self.assertEqual(sorted(x["order"] for x in self.rows if "hours necessary" in x["note"]),
                          ["202-26-49", "202-26-51"])
 
@@ -75,7 +96,8 @@ class TestTables(unittest.TestCase):
         self.assertLessEqual(newest, D.fromisoformat(ol.TABLE_AS_OF))
         self.assertEqual(ol.TABLE_AS_OF, "2026-11-16")
         self.assertEqual(ol.COURT_AS_OF, "2026-11-16")
-        self.assertEqual(ol.__version__, "0.3.0")
+        self.assertEqual(ol.DOCKETS_READ, "2026-10-19")
+        self.assertEqual(ol.__version__, "0.3.1")
 
     def test_plants_table(self):
         self.assertEqual(sorted(self.plants), sorted(PLANT_ORDERS_NOV))
@@ -85,37 +107,63 @@ class TestTables(unittest.TestCase):
         self.assertEqual(self.plants["stanton"]["summer_mw"], 453.4)
 
     def test_court_table(self):
-        self.assertEqual(len(self.court), 18)
+        self.assertEqual(len(self.court), 41)
         by_order = {r["order"]: r for r in self.rows}
         for c in self.court:
-            self.assertIn(c["order"], by_order)  # every action is on an order in the table
-            self.assertEqual(c["plant_key"], by_order[c["order"]]["plant_key"])
             self.assertTrue(c["source"].startswith("https://"), c)
-            self.assertIn(c["date_kind"], ("decided", "filed", "reported"))
+            self.assertIn(c["date_kind"], ("decided", "filed", "first seen", "reported"))
+            self.assertIsNotNone(c["date"], c)
             self.assertLessEqual(c["date"], D.fromisoformat(ol.COURT_AS_OF))
-            # Nothing in court before the order it is about was issued.
-            self.assertGreaterEqual(c["date"], by_order[c["order"]]["issued"], c)
             self.assertTrue(c["note"], c)
             self.assertTrue(c["case"], c)
+            for k in ol.plant_keys(c):
+                self.assertIn(k, self.plants, c)
+            if c["order"]:
+                self.assertIn(c["order"], by_order)  # every named order is in the table
+                self.assertEqual(c["plant_key"], by_order[c["order"]]["plant_key"])
+                # Nothing in court before the order it is about was issued.
+                self.assertGreaterEqual(c["date"], by_order[c["order"]]["issued"], c)
+            else:
+                # Only petitions may lack an order, and the note says the order was not seen.
+                self.assertEqual(c["action"], ol.PETITION, c)
+                self.assertTrue("not seen" in c["note"] or "not confirmed" in c["note"], c)
+            if c["action"] == ol.PETITION:
+                self.assertIn(c["status"], ol.STATUSES, c)
+                # Decided, abeyance and briefing rows carry the date of that order; the others none.
+                self.assertEqual(c["status_date"] is not None,
+                                 c["status"] in ("decided", "abeyance", "briefing"), c)
+            else:
+                self.assertEqual((c["status"], c["status_date"]), ("", None), c)
         self.assertEqual(Counter(c["date_kind"] for c in self.court),
-                         Counter({"filed": 17, "decided": 1}))
+                         Counter({"filed": 35, "first seen": 5, "decided": 1}))
         self.assertEqual(Counter(c["action"] for c in self.court),
-                         Counter({"petition for review": 15, "opening brief of petitioners": 1,
-                                  "vacated": 1, "rehearing petition by DOE": 1}))
+                         Counter({"petition for review": 37, "opening brief of petitioners": 1,
+                                  "vacated": 1, "rehearing petition by DOE": 1,
+                                  "amicus brief supporting rehearing": 1}))
         self.assertEqual(Counter(c["plant_key"] for c in self.court),
-                         Counter({"campbell": 4, "eddystone": 3, "centralia": 3, "schahfer": 3,
-                                  "culley": 3, "craig": 2}))
+                         Counter({"campbell": 13, "eddystone": 7, "centralia": 4, "schahfer": 4,
+                                  "culley": 4, "schahfer|culley": 2, "craig": 6, "stanton": 1}))
+        pets = [c for c in self.court if c["action"] == ol.PETITION]
+        self.assertEqual(Counter(c["status"] for c in pets), Counter(STATUS))
+        # The five abeyance groups of the docket census.
+        self.assertEqual(Counter(c["status_date"] for c in pets if c["status"] == "abeyance"),
+                         Counter({D(2026, 2, 18): 3, D(2026, 3, 13): 1, D(2026, 6, 8): 3,
+                                  D(2026, 7, 28): 10, D(2026, 8, 26): 4}))
         # Oldest first.
         self.assertEqual([c["date"] for c in self.court], sorted(c["date"] for c in self.court))
-        self.assertEqual((self.court[0]["order"], self.court[0]["date"]), ("202-25-3", D(2025, 7, 25)))
+        self.assertEqual((self.court[0]["order"], self.court[0]["date"], self.court[0]["case"][:11]),
+                         ("202-25-3", D(2025, 7, 24), "No. 25-1159"))
         (vac,) = [c for c in self.court if c["action"] == "vacated"]
         self.assertEqual((vac["order"], vac["date"], vac["date_kind"], vac["case"][:11]),
                          ("202-25-3", D(2026, 9, 11), "decided", "No. 25-1159"))
         # The vacated order had already expired when the court ruled: 386 days earlier, and
-        # 413 days after Michigan's petition for review.
+        # 414 days after the first petition (24 July 2025).
         self.assertEqual((vac["date"] - by_order["202-25-3"]["expires"]).days, 386)
-        (pet,) = [c for c in self.court if c["order"] == "202-25-3" and c["action"] == ol.PETITION]
-        self.assertEqual((vac["date"] - pet["date"]).days, 413)
+        first = min(c["date"] for c in pets if c["order"] == "202-25-3")
+        self.assertEqual(first, D(2025, 7, 24))
+        self.assertEqual((vac["date"] - first).days, 414)
+        self.assertEqual(sorted(c["status"] for c in pets if c["order"] == "202-25-3"),
+                         ["decided"] * 3)
         (reh,) = [c for c in self.court if c["action"] == "rehearing petition by DOE"]
         self.assertEqual((reh["date"], reh["date_kind"]), (D(2026, 10, 26), "filed"))
         # Filed on the 45th day after the decision (FRAP 40, a U.S. agency is a party).
@@ -123,16 +171,25 @@ class TestTables(unittest.TestCase):
         self.assertIn("climate.law.columbia.edu", reh["source"])
         self.assertIn("publicpower.org", reh["note"])  # the earlier report is still cited
         self.assertIn("as of 2026-11-16", reh["note"])
-        self.assertEqual(self.court[-1]["date"], D(2026, 10, 26))
-        # Docket numbers found, per order.
-        cases = {(c["order"], c["case"].split(" (")[0]) for c in self.court
-                 if c["action"] == ol.PETITION and c["case"].startswith("No. ")}
-        self.assertEqual(cases, {("202-25-3", "No. 25-1159"), ("202-25-4", "No. 25-1193"),
-                                 ("202-25-11", "No. 26-1252"), ("202-25-11", "No. 26-1261"),
-                                 ("202-25-12", "No. 26-1057"), ("202-25-13", "No. 26-1057"),
-                                 ("202-25-14", "No. 26-1059"), ("202-25-14", "No. 26-1060")})
+        (ami,) = [c for c in self.court if c["action"] == "amicus brief supporting rehearing"]
+        self.assertEqual((ami["order"], ami["date"]), ("202-25-3", D(2026, 11, 3)))
+        self.assertIn("West Virginia and 12 other states", ami["note"])
+        self.assertEqual(self.court[-1]["date"], D(2026, 11, 3))
+        # Docket numbers, per named order and for petitions with no named order.
+        self.assertEqual({(c["order"], d) for c in pets if c["order"] for d in ol.dockets(c)},
+                         NAMED_DOCKETS)
+        self.assertEqual({d for c in pets if not c["order"] for d in ol.dockets(c)},
+                         UNNAMED_DOCKETS)
+        self.assertEqual(len({d for c in pets for d in ol.dockets(c)}), 35)
+        # Correction in 0.3.1: Schahfer's first order is in 26-1056, Culley's in 26-1057.
+        (s,) = [c for c in pets if c["case"].startswith("No. 26-1056")]
+        (k,) = [c for c in pets if c["case"].startswith("No. 26-1057")]
+        self.assertEqual((s["order"], k["order"]), ("202-25-12", "202-25-13"))
+        # Two tracker petitions have no docket in the archive.
+        self.assertEqual(sorted(c["order"] for c in pets if c["case"] == "case number not found"),
+                         ["202-26-16", "202-26-18"])
         ninth = sorted(c["order"] for c in self.court if "Ninth Circuit" in c["court"])
-        self.assertEqual(ninth, ["202-25-11", "202-25-11", "202-26-18"])
+        self.assertEqual(ninth, ["", "202-25-11", "202-25-11", "202-26-18"])
 
 
 class TestLookups(unittest.TestCase):
@@ -147,6 +204,13 @@ class TestLookups(unittest.TestCase):
         self.assertEqual(ol.base_order("202-25-1F"), "202-25-1")
         self.assertEqual(ol.base_order("202-26-39"), "202-26-39")
 
+    def test_helpers(self):
+        self.assertEqual(ol.plant_keys({"plant_key": "schahfer|culley"}), ["schahfer", "culley"])
+        self.assertEqual(ol.plant_keys({"plant_key": ""}), [])
+        self.assertEqual(ol.dockets({"case": "No. 26-1186 or No. 26-1187 (State of Minnesota v. "
+                                             "Chris Wright)"}), ["26-1186", "26-1187"])
+        self.assertEqual(ol.dockets({"case": "case number not found"}), [])
+
     def test_in_force_november(self):
         for day in (D(2026, 11, 8), D(2026, 11, 9), D(2026, 11, 13), D(2026, 11, 14)):
             sel = ol.in_force(self.rows, day)
@@ -156,7 +220,6 @@ class TestLookups(unittest.TestCase):
             self.assertEqual(sorted(r["order"] for r in sel if r["kind"] == "island"),
                              ["202-25-1F", "202-25-2F"])
             self.assertEqual([r for r in sel if r["kind"] == "event"], [])
-        # From 15 November Campbell is under 202-26-51; nothing else changes through the 16th.
         for day in (D(2026, 11, 15), D(2026, 11, 16)):
             sel = ol.in_force(self.rows, day)
             self.assertEqual({r["plant_key"]: r["order"] for r in sel if r["kind"] == "plant"},
@@ -174,7 +237,6 @@ class TestLookups(unittest.TestCase):
                           "202-26-06", "202-26-07", "202-26-08"])
 
     def test_expiring(self):
-        # Campbell's 202-26-39 now has a successor in the table, so it is no longer listed.
         got = [(r["order"], left) for r, left in ol.expiring(self.rows, D(2026, 11, 9), 14)]
         self.assertEqual(got, [("202-26-25A", 8), ("202-26-40", 11)])
         self.assertEqual(len(ol.expiring(self.rows, D(2026, 11, 9), 30)), 3)
@@ -182,7 +244,6 @@ class TestLookups(unittest.TestCase):
         self.assertEqual(got, [("202-26-25A", 3), ("202-26-40", 6)])
         got = [(r["order"], left) for r, left in ol.expiring(self.rows, D(2026, 11, 16), 14)]
         self.assertEqual(got, [("202-26-25A", 1), ("202-26-40", 4), ("202-26-42", 14)])
-        # PREPA's 1E/2E expire 7 November but 1F/2F follow in the table; Guam's 202-26-38 does not.
         got = [r["order"] for r, _ in ol.expiring(self.rows, D(2026, 11, 1), 7)]
         self.assertEqual(got, ["202-26-38"])
 
@@ -198,7 +259,7 @@ class TestLookups(unittest.TestCase):
         c = ol.chain(self.rows, "campbell")
         self.assertEqual([r["order"] for r in c["orders"]], CAMPBELL)
         self.assertEqual((c["gaps"], c["first_start"]), ([], D(2025, 5, 23)))
-        self.assertEqual(c["current"]["order"], "202-26-51")  # latest in the table
+        self.assertEqual(c["current"]["order"], "202-26-51")
         w = ol.chain(self.rows, "wagner")
         self.assertEqual(w["gaps"], [{"after": "202-25-6A", "before": "202-26-25", "days": 141,
                                       "from": "2026-01-01", "to": "2026-05-21"}])
@@ -214,13 +275,12 @@ class TestLookups(unittest.TestCase):
                          ("202-26-51", None, D(2027, 2, 12)))
         st = ol.plant_status(camp, D(2027, 2, 13))
         self.assertEqual((st["current"], st["next"], st["covered_through"]), (None, None, None))
-        # From the first order, Campbell is covered without a break through the newest expiry.
         self.assertEqual(ol.plant_status(camp, D(2025, 5, 23))["covered_through"], D(2027, 2, 12))
         wag = ol.chain(self.rows, "wagner")["orders"]
-        st = ol.plant_status(wag, D(2026, 2, 1))  # inside Wagner's 141-day gap
+        st = ol.plant_status(wag, D(2026, 2, 1))
         self.assertEqual((st["current"], st["next"]["order"], st["covered_through"]),
                          (None, "202-26-25", None))
-        st = ol.plant_status(wag, D(2025, 12, 1))  # coverage stops at the gap
+        st = ol.plant_status(wag, D(2025, 12, 1))
         self.assertEqual((st["current"]["order"], st["next"]["order"], st["covered_through"]),
                          ("202-25-6A", "202-26-25", D(2025, 12, 31)))
         st = ol.plant_status(wag, D(2026, 11, 9))
@@ -250,28 +310,39 @@ class TestLookups(unittest.TestCase):
         self.assertEqual(ol.successor(self.rows, by["202-26-02"])["order"], "202-26-02A")
 
     def test_court_for(self):
-        self.assertEqual(len(ol.court_for(self.court, orders=["202-25-3"])), 3)
-        self.assertEqual(len(ol.court_for(self.court, plant_key="campbell")), 4)
+        self.assertEqual(len(ol.court_for(self.court, orders=["202-25-3"])), 6)
+        self.assertEqual(len(ol.court_for(self.court, plant_key="campbell")), 13)
         self.assertEqual(ol.court_for(self.court, orders=["202-26-39"]), [])
         self.assertEqual(ol.court_for(self.court, orders=["202-26-51"]), [])
-        self.assertEqual(len(ol.court_for(self.court, plant_key="eddystone")), 3)
+        self.assertEqual(len(ol.court_for(self.court, plant_key="eddystone")), 7)
         self.assertEqual(len(ol.court_for(self.court, orders=["202-25-14"])), 2)
+        self.assertEqual(len(ol.court_for(self.court, orders=["202-26-19"])), 1)
         self.assertEqual(ol.court_for(self.court, orders=["202-26-49"]), [])
         self.assertEqual(ol.court_for(self.court, plant_key="wagner"), [])
-        self.assertEqual(ol.court_for(self.court, plant_key="stanton"), [])
+        # Petitions with an inferred plant are found by plant, never by an empty order.
+        (st,) = ol.court_for(self.court, plant_key="stanton")
+        self.assertEqual((st["order"], st["case"][:11]), ("", "No. 26-1224"))
+        self.assertEqual(ol.court_for(self.court, orders=[""]), [])
+        self.assertEqual(len(ol.court_for(self.court, plant_key="schahfer")), 6)
+        self.assertEqual(len(ol.court_for(self.court, plant_key="culley")), 6)
+        self.assertEqual(len(ol.court_for(self.court, plant_key="craig")), 6)
+        self.assertEqual(len(ol.court_for(self.court, plant_key="centralia")), 4)
         # "202-25-3" must not match 202-25-3x orders or the other way round.
         self.assertEqual(ol.court_for([{"order": "202-25-30", "plant_key": "x"}],
                                       orders=["202-25-3"]), [])
 
     def test_court_overview(self):
         ov = ol.court_overview(self.court, self.rows)
-        self.assertEqual(ov, {"orders_petitioned": PETITIONED, "plant_orders_petitioned": 10,
-                              "plant_orders": 35, "plants_petitioned": PLANTS_PETITIONED,
+        self.assertEqual(ov, {"petitions": 37, "dockets": 35, "orders_petitioned": PETITIONED,
+                              "plant_orders_petitioned": 14, "plant_orders": 35,
+                              "petitions_order_not_confirmed": 10,
+                              "plants_petitioned": PLANTS_PETITIONED, "status": STATUS,
                               "rulings": 1})
-        self.assertEqual(ol.court_overview([], self.rows)["plant_orders_petitioned"], 0)
+        self.assertEqual(ol.overview_text(ov), OVERVIEW)
         self.assertEqual(ol.overview_text(ol.court_overview([], self.rows)),
-                         "Petitions for review found against 0 of 35 plant orders (plants: none); "
-                         "court rulings found: 0.")
+                         "Petitions for review found: 0 (0 docket numbers), naming 0 of 35 plant "
+                         "orders; 0 name no order in the sources (plant inferred). Plants: none. "
+                         "Petition status: none. Court rulings found: 0.")
 
     def test_missing_court_file(self):
         self.assertEqual(ol.load_court(os.path.join(SKILL, "no_such_file.csv")), [])
@@ -285,25 +356,46 @@ class TestCli(unittest.TestCase):
         self.assertIn("7 orders since 2025-05-23", out)
         self.assertIn("under order 202-26-39, 6 days until its expiry date 2026-11-14", out)
         self.assertIn("Gaps between orders: none.", out)
-        self.assertIn("202-25-3  2025-07-25 filed: petition for review, No. 25-1159", out)
-        self.assertIn("202-26-16  2026-06-18 filed: petition for review, case number not found", out)
-        self.assertIn("202-25-3  2026-09-11 decided: vacated, No. 25-1159", out)
+        self.assertIn("202-25-3  2025-07-24 filed: petition for review, No. 25-1159 (People of the "
+                      "State of Michigan v. DOE); status: decided 2026-09-11. Source: https://", out)
+        self.assertIn("202-25-7  2025-10-09 filed: petition for review, No. 25-1198 (Sierra Club v. "
+                      "DOE); status: abeyance 2026-02-18.", out)
+        self.assertIn("202-26-16  2026-06-18 filed: petition for review, case number not found; "
+                      "status: not in archive.", out)
+        self.assertIn("202-25-3  2026-09-11 decided: vacated, No. 25-1159 (Michigan v. U.S. "
+                      "Department of Energy). Source:", out)
         self.assertIn("202-25-3  2026-10-26 filed: rehearing petition by DOE, No. 25-1159", out)
+        self.assertIn("202-25-3  2026-11-03 filed: amicus brief supporting rehearing, No. 25-1159",
+                      out)
         self.assertIn("says nothing about any other order", out)
-        self.assertIn("dockets themselves were not read", out)
+        self.assertIn("read on 2026-10-19", out)
         self.assertNotIn("WARNING", out)
 
     def test_plant_centralia_ninth_circuit(self):
         code, out = run("plant", "centralia", "--date", "2026-11-16")
         self.assertEqual(code, 0)
-        self.assertIn("202-25-11  2026-03-03 filed: petition for review, No. 26-1252 "
-                      "(Washington v. U.S. Department of Energy)", out)
-        self.assertIn("No. 26-1261 (Sierra Club v. U.S. Department of Energy)", out)
+        self.assertIn("202-25-11  2026-03-03 filed: petition for review, No. 26-1252 (State of "
+                      "Washington v. United States Department of Energy); status: briefing "
+                      "2026-03-23.", out)
+        self.assertIn("(order not confirmed, centralia)  2026-06-11 filed: petition for review, "
+                      "No. 26-3781", out)
         self.assertIn("under order 202-26-44, 25 days until its expiry date 2026-12-11", out)
         self.assertNotIn("WARNING", out)
 
+    def test_plant_inferred_rows(self):
+        code, out = run("plant", "stanton", "--date", "2026-11-16")
+        self.assertEqual(code, 0)
+        self.assertIn("(order not confirmed, stanton)  2026-08-27 filed: petition for review, "
+                      "No. 26-1224 (Environmental Defense Fund v. DOE); status: no order seen.", out)
+        code, out = run("plant", "schahfer", "--date", "2026-11-16")
+        self.assertIn("(order not confirmed, schahfer or culley)  2026-06-15 first seen: petition "
+                      "for review, No. 26-1158 (Sierra Club v. DOE); status: abeyance 2026-07-28.",
+                      out)
+        self.assertIn("202-25-12  2026-03-16 filed: petition for review, No. 26-1056", out)
+        code, out = run("plant", "wagner", "--date", "2026-11-16")
+        self.assertIn("Court actions in the court table: none.", out)
+
     def test_plant_on_last_day_before_renewal(self):
-        # Regression: a renewal issued before it starts must not hide the order still in force.
         code, out = run("plant", "campbell", "--date", "2026-11-14")
         self.assertEqual(code, 0)
         self.assertIn("On 2026-11-14: under order 202-26-39, 0 days until its expiry date "
@@ -339,11 +431,17 @@ class TestCli(unittest.TestCase):
                          ("wagner", "202-26-25A", "2026-11-17", 8, 4, 1, [], None, "2026-11-17"))
         code, out = run("plant", "1710", "--date", "2026-11-13", "--json")
         (p,) = json.loads(out)["plants"]
-        self.assertEqual([(c["order"], c["action"]) for c in p["court"]],
-                         [("202-25-3", "petition for review"), ("202-26-16", "petition for review"),
-                          ("202-25-3", "vacated"), ("202-25-3", "rehearing petition by DOE")])
-        # The vacatur changes nothing in the in-force dates: 202-26-39 is still current, and the
-        # renewal issued that day is the next order, not the current one.
+        got = [(c["order"], c["action"]) for c in p["court"]]
+        self.assertEqual(len(got), 13)
+        self.assertEqual(got[:3], [("202-25-3", "petition for review")] * 3)
+        self.assertEqual(got[8:], [("202-26-16", "petition for review"),
+                                   ("202-26-22", "petition for review"),
+                                   ("202-25-3", "vacated"),
+                                   ("202-25-3", "rehearing petition by DOE"),
+                                   ("202-25-3", "amicus brief supporting rehearing")])
+        self.assertEqual([c["status"] for c in p["court"]][:3], ["decided"] * 3)
+        self.assertEqual(p["court"][0]["status_date"], "2026-09-11")
+        self.assertEqual(p["court"][-1]["status_date"], "")
         self.assertEqual((p["current_order"], p["days_until_expiry"], p["in_force_on_date"],
                           p["next_order"], p["next_effective"], p["covered_through"]),
                          ("202-26-39", 1, True, "202-26-51", "2026-11-15", "2027-02-12"))
@@ -357,7 +455,6 @@ class TestCli(unittest.TestCase):
         code, out = run("in-force", "--date", "2026-12-01")
         self.assertEqual(code, 0)
         self.assertIn("WARNING: 2026-12-01 is after the table's as-of date (2026-11-16)", out)
-        # Wagner, Eddystone and Stanton have expired in the table by then; Campbell is renewed.
         self.assertIn("Plant orders cover 5 plant(s)", out)
         self.assertIn("202-26-51", out)
         for day in ("2026-11-13", "2026-11-14", "2026-11-16"):
@@ -395,28 +492,35 @@ class TestCli(unittest.TestCase):
         res = json.loads(out)
         self.assertEqual(res["next_in_chain"], "202-25-7")
         self.assertEqual([c["date"] for c in res["court"]],
-                         ["2025-07-25", "2026-09-11", "2026-10-26"])
-        self.assertEqual([c["date_kind"] for c in res["court"]], ["filed", "decided", "filed"])
-        self.assertEqual(res["court_as_of"], "2026-11-16")
-        self.assertEqual(res["version"], "0.3.0")
+                         ["2025-07-24", "2025-07-24", "2025-07-25", "2026-09-11", "2026-10-26",
+                          "2026-11-03"])
+        self.assertEqual([c["date_kind"] for c in res["court"]],
+                         ["filed", "filed", "filed", "decided", "filed", "filed"])
+        self.assertEqual((res["court_as_of"], res["dockets_read"]), ("2026-11-16", "2026-10-19"))
+        self.assertEqual(res["version"], "0.3.1")
         code, out = run("order", "202-25-14", "--json")
         res = json.loads(out)
-        self.assertEqual([c["case"] for c in res["court"]], ["No. 26-1059", "No. 26-1060"])
+        self.assertEqual([c["case"] for c in res["court"]],
+                         ["No. 26-1059 (State of Colorado v. DOE)", "No. 26-1060 (Sierra Club v. DOE)"])
+        self.assertEqual([(c["status"], c["status_date"]) for c in res["court"]],
+                         [("abeyance", "2026-06-08")] * 2)
         self.assertEqual(res["next_in_chain"], "202-26-21")
 
     def test_court_cli(self):
         code, out = run("court")
         self.assertEqual(code, 0)
-        self.assertIn("Court actions on 202(c) orders in the court table: 18.", out)
+        self.assertIn("Court actions on 202(c) orders in the court table: 41.", out)
         self.assertIn("https://media.cadc.uscourts.gov/opinions/docs/2026/09/25-1159.pdf", out)
         self.assertIn("https://climate.law.columbia.edu/news/climate-litigation-updates-november-6-2026",
                       out)
-        self.assertIn("Petitions for review found against 10 of 35 plant orders (plants: campbell, "
-                      "centralia, craig, culley, eddystone, schahfer); court rulings found: 1.", out)
+        self.assertIn(OVERVIEW, out)
         code, out = run("court", "--json")
         res = json.loads(out)
-        self.assertEqual(len(res["court"]), 18)
+        self.assertEqual(len(res["court"]), 41)
         self.assertEqual(res["overview"]["orders_petitioned"], PETITIONED)
+        self.assertEqual(res["overview"]["status"], STATUS)
+        self.assertEqual(sum(1 for c in res["court"] if c["order"] == ""), 10)
+        self.assertEqual(res["court"][0]["status_date"], "2026-09-11")
 
     def test_summary(self):
         code, out = run("summary", "--date", "2026-11-09", "--json")
@@ -424,13 +528,15 @@ class TestCli(unittest.TestCase):
         res = json.loads(out)
         self.assertEqual((res["orders"], res["by_kind"], res["in_force"], res["mw"]["summer_mw"],
                           res["court_actions"], res["orders_vacated"], res["by_year"]),
-                         (88, {"plant": 35, "event": 38, "island": 15}, 10, 4849.9, 18, ["202-25-3"],
+                         (88, {"plant": 35, "event": 38, "island": 15}, 10, 4849.9, 41, ["202-25-3"],
                           {"2025": 19, "2026": 69}))
         self.assertEqual((res["plant_orders_petitioned"], res["plants_petitioned"],
-                          res["orders_petitioned"]), (10, PLANTS_PETITIONED, PETITIONED))
+                          res["orders_petitioned"], res["petitions"], res["dockets"],
+                          res["petition_status"]),
+                         (14, PLANTS_PETITIONED, PETITIONED, 37, 35, STATUS))
         code, out = run("summary", "--date", "2026-11-09")
         self.assertIn("orders vacated by a court: 202-25-3.", out)
-        self.assertIn("Petitions for review found against 10 of 35 plant orders", out)
+        self.assertIn(OVERVIEW, out)
 
     def test_bad_date(self):
         code, _ = run("in-force", "--date", "11/09/2026")
@@ -450,8 +556,16 @@ class TestSkillDoc(unittest.TestCase):
         self.assertIn("doe_202c_court.csv", text)
         self.assertIn("No. 25-1159", text)
         self.assertIn("No. 26-1252", text)
+        self.assertIn("No. 26-1224", text)
         self.assertIn("petitions for review", text)
-        self.assertIn("10 of the 35 plant orders", text)
+        self.assertIn("41 court actions (37 petitions for review)", text)
+        self.assertIn("37 petitions for review (35 docket numbers)", text)
+        self.assertIn("14 of the 35 plant orders", text)
+        self.assertIn("414 days", text)
+        self.assertNotIn("413 days", text)
+        self.assertNotIn("10 of the 35 plant orders", text)
+        self.assertIn("19 October 2026", text)
+        self.assertIn("RECAP", text)
         self.assertIn("26 October 2026", text)
         self.assertNotIn("reported 30 October", text)
         self.assertIn("202-26-51", text)
@@ -464,12 +578,13 @@ class TestSkillDoc(unittest.TestCase):
     def test_readme(self):
         with open(os.path.join(HERE, "README.md"), encoding="utf-8") as f:
             text = f.read()
-        self.assertIn("0.3.0", text)
+        self.assertIn("0.3.1", text)
         self.assertIn("26 October 2026", text)
         self.assertIn("202-26-51", text)
-        self.assertIn("No. 26-1252", text)
-        self.assertIn("10 of the 35 plant orders", text)
-        self.assertIn("413 days", text)
+        self.assertIn("26-1252", text)
+        self.assertIn("14 of the 35 plant orders", text)
+        self.assertIn("414 days", text)
+        self.assertIn("37 petitions for review", text)
         self.assertIn("Apache-2.0", text)
         self.assertNotIn("MIT", text)
 

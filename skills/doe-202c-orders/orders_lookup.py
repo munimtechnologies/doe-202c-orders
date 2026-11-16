@@ -5,9 +5,9 @@ Copyright 2026 MV2, Munim, Inc. Apache-2.0. Made with AI agents working in MV2's
 Reads doe_202c_orders.csv (one row per order, extension or amendment, transcribed from DOE's
 2025 and 2026 202(c) order pages, plus one amended order that only ERCOT's page lists),
 doe_202c_plant_mw.csv (summer MW of the units each plant order covers) and doe_202c_court.csv
-(court actions on orders: petitions for review, briefs, rulings and rehearing petitions found in
-court opinions, litigation trackers and press releases), all next to this file.
-Standard library only; no network.
+(court actions on plant orders: one row per petition for review, with its docket number and
+status where found, plus briefs, the ruling, the rehearing petition and an amicus brief), all
+next to this file. Standard library only; no network.
 
     python orders_lookup.py in-force [--date 2026-11-16] [--kind plant|event|island] [--json]
     python orders_lookup.py expiring [--date 2026-11-16] [--days 30] [--json]
@@ -19,7 +19,11 @@ Standard library only; no network.
 Days are calendar dates; an order is in force from its start date through its expiry date,
 both counted. Times of day are shown but not used. A court action changes nothing in the
 in-force dates: they are the dates in DOE's orders. In the court table, date_kind says what a
-date is: 'decided' (a ruling), 'filed' (a filing) or 'reported' (only a report's date is known).
+date is: 'decided' (a ruling), 'filed' (a filing), 'first seen' (the docket has no filing date;
+this is its earliest entry seen, so it was filed on or before) or 'reported' (only a report's
+date is known). A petition row with an empty order names no order in the sources; its
+plant_key is inferred (and may be 'schahfer|culley' where the record does not say which).
+status is the latest docket status seen when the dockets were read (DOCKETS_READ).
 For a plant, the order in force on the date is the current one; a renewal that DOE has issued
 but that starts later is shown as the next order, never as the current one.
 Exit codes: 0 found, 1 nothing matched, 2 bad input.
@@ -34,12 +38,14 @@ import re
 import sys
 from collections import Counter
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 # The last date DOE's pages were read for this table. Orders issued later are not in it.
 TABLE_AS_OF = "2026-11-16"
 # The last date court actions were looked for. Only actions found by then are in the court table.
 COURT_AS_OF = "2026-11-16"
+# The date the dockets were read in CourtListener's RECAP archive (petition statuses).
+DOCKETS_READ = "2026-10-19"
 DOE_PAGES = ("https://www.energy.gov/ceser/2026-doe-202c-orders",
              "https://www.energy.gov/ceser/2025-doe-202c-orders")
 
@@ -50,14 +56,19 @@ COURT = os.path.join(HERE, "doe_202c_court.csv")
 KINDS = ("plant", "event", "island")
 COAL_FUELS = frozenset({"BIT", "SUB", "LIG", "ANT", "RC", "WC", "SGC"})
 PETITION = "petition for review"
+STATUSES = ("decided", "abeyance", "briefing", "no order seen", "not in archive")
+DOCKET_RE = re.compile(r"\b\d{2}-\d{4}\b")
 SHOW = ("order", "kind", "area", "recipient", "plant_key", "plant", "issued", "effective",
         "expires", "expires_time", "note", "source")
-COURT_SHOW = ("order", "plant_key", "date", "date_kind", "court", "case", "action", "source", "note")
-COURT_LIMIT = ("Court actions found as of %s in the sources named in each row (court opinions, "
-               "litigation trackers, press releases); the court dockets themselves were not read, "
-               "so later petitions, consolidations, abeyance orders and rulings may be missing. A "
-               "court action on one order says nothing about any other order, and the in-force "
-               "dates here are the dates in DOE's orders." % COURT_AS_OF)
+COURT_SHOW = ("order", "plant_key", "date", "date_kind", "court", "case", "action", "status",
+              "status_date", "source", "note")
+COURT_LIMIT = ("Court actions found as of %s. Petitions and their status come from the D.C. and "
+               "Ninth Circuit dockets in CourtListener's RECAP archive, read on %s (it holds only "
+               "what PACER users uploaded, so petitions and orders can be missing, and a status can "
+               "have changed since), joined with litigation trackers, press releases and the "
+               "court's opinion; each row names its source. A court action on one order says "
+               "nothing about any other order, and the in-force dates here are the dates in DOE's "
+               "orders." % (COURT_AS_OF, DOCKETS_READ))
 
 
 def _date(s):
@@ -92,7 +103,20 @@ def load_court(path=COURT):
         rows = list(csv.DictReader(fh))
     for r in rows:
         r["date"] = _date(r["date"])
+        r["status_date"] = _date(r.get("status_date"))
+        r["status"] = (r.get("status") or "").strip()
+        r["order"] = (r.get("order") or "").strip()
     return sorted(rows, key=lambda r: (r["date"], r["order"]))
+
+
+def plant_keys(c):
+    """The plant keys of a court row: 'schahfer|culley' -> ['schahfer', 'culley']."""
+    return [k for k in (c.get("plant_key") or "").split("|") if k]
+
+
+def dockets(c):
+    """Docket numbers named in a court row's case column."""
+    return DOCKET_RE.findall(c.get("case") or "")
 
 
 def base_order(order):
@@ -209,28 +233,38 @@ def renewal_note(rows):
 
 
 def court_for(court, orders=None, plant_key=None):
-    """Court actions on any of `orders` (order numbers) or on any order of `plant_key`."""
-    want = {_norm(o) for o in (orders or [])}
-    return [c for c in court if _norm(c["order"]) in want
-            or (plant_key is not None and c["plant_key"] == plant_key)]
+    """Court actions on any of `orders` (order numbers) or on any order of `plant_key`
+    (including petitions whose order is not confirmed but whose plant is inferred)."""
+    want = {_norm(o) for o in (orders or []) if _norm(o)}
+    return [c for c in court if (c["order"] and _norm(c["order"]) in want)
+            or (plant_key is not None and plant_key in plant_keys(c))]
 
 
 def court_overview(court, rows):
-    """Which orders have a petition for review in the court table, and how many rulings it has."""
+    """Petitions for review in the court table: how many, docket numbers, which plant orders they
+    name, which plants, their status counts, and how many rulings the table has."""
     kinds = {r["order"]: r["kind"] for r in rows}
-    pet = sorted({c["order"] for c in court if c["action"] == PETITION})
-    return {"orders_petitioned": pet,
-            "plant_orders_petitioned": sum(1 for o in pet if kinds.get(o) == "plant"),
+    pets = [c for c in court if c["action"] == PETITION]
+    named = sorted({c["order"] for c in pets if c["order"]})
+    status = Counter(c["status"] for c in pets)
+    return {"petitions": len(pets),
+            "dockets": len({d for c in pets for d in dockets(c)}),
+            "orders_petitioned": named,
+            "plant_orders_petitioned": sum(1 for o in named if kinds.get(o) == "plant"),
             "plant_orders": sum(1 for r in rows if r["kind"] == "plant"),
-            "plants_petitioned": sorted({c["plant_key"] for c in court
-                                         if c["action"] == PETITION and c["plant_key"]}),
+            "petitions_order_not_confirmed": sum(1 for c in pets if not c["order"]),
+            "plants_petitioned": sorted({k for c in pets for k in plant_keys(c)}),
+            "status": {s: status[s] for s in STATUSES if status[s]},
             "rulings": sum(1 for c in court if c["date_kind"] == "decided")}
 
 
 def overview_text(ov):
-    return ("Petitions for review found against %d of %d plant orders (plants: %s); court rulings "
-            "found: %d." % (ov["plant_orders_petitioned"], ov["plant_orders"],
-                            ", ".join(ov["plants_petitioned"]) or "none", ov["rulings"]))
+    return ("Petitions for review found: %d (%d docket numbers), naming %d of %d plant orders; "
+            "%d name no order in the sources (plant inferred). Plants: %s. Petition status: %s. "
+            "Court rulings found: %d."
+            % (ov["petitions"], ov["dockets"], ov["plant_orders_petitioned"], ov["plant_orders"],
+               ov["petitions_order_not_confirmed"], ", ".join(ov["plants_petitioned"]) or "none",
+               ", ".join("%s %d" % kv for kv in ov["status"].items()) or "none", ov["rulings"]))
 
 
 def mw_in_force(rows, plants, day):
@@ -253,6 +287,9 @@ def summary(rows, plants, day, court=()):
             "mw": mw_in_force(rows, plants, day),
             "court_actions": len(court),
             "orders_vacated": sorted({c["order"] for c in court if c["action"] == "vacated"}),
+            "petitions": ov["petitions"],
+            "dockets": ov["dockets"],
+            "petition_status": ov["status"],
             "orders_petitioned": ov["orders_petitioned"],
             "plant_orders_petitioned": ov["plant_orders_petitioned"],
             "plants_petitioned": ov["plants_petitioned"]}
@@ -292,8 +329,13 @@ def line(r, day=None):
 
 
 def court_line(c):
-    return "%s  %s %s: %s, %s. Source: %s" % (c["order"], c["date"], c["date_kind"], c["action"],
-                                              c["case"], c["source"])
+    label = c["order"] or "(order not confirmed, %s)" % " or ".join(plant_keys(c))
+    s = "%s  %s %s: %s, %s" % (label, c["date"], c["date_kind"], c["action"], c["case"])
+    if c.get("status"):
+        s += "; status: %s" % c["status"]
+        if c.get("status_date"):
+            s += " %s" % c["status_date"]
+    return s + ". Source: %s" % c["source"]
 
 
 def court_text(sel):
@@ -349,6 +391,7 @@ def main(argv=None, rows=None, plants=None, court=None):
     plants = load_plants() if plants is None else plants
     court = load_court() if court is None else court
     res, text = {"version": __version__, "table_as_of": TABLE_AS_OF, "court_as_of": COURT_AS_OF,
+                 "dockets_read": DOCKETS_READ,
                  "date": day.isoformat() if day else None}, header(day)
     found = True
 
