@@ -5,11 +5,12 @@ Copyright 2026 MV2, Munim, Inc. Apache-2.0. Made with AI agents working in MV2's
 Reads doe_202c_orders.csv (one row per order, extension or amendment, transcribed from DOE's
 2025 and 2026 202(c) order pages, plus one amended order that only ERCOT's page lists),
 doe_202c_plant_mw.csv (summer MW of the units each plant order covers) and doe_202c_court.csv
-(court actions on orders found in the opinions and in reporting), all next to this file.
+(court actions on orders: petitions for review, briefs, rulings and rehearing petitions found in
+court opinions, litigation trackers and press releases), all next to this file.
 Standard library only; no network.
 
-    python orders_lookup.py in-force [--date 2026-11-14] [--kind plant|event|island] [--json]
-    python orders_lookup.py expiring [--date 2026-11-14] [--days 30] [--json]
+    python orders_lookup.py in-force [--date 2026-11-16] [--kind plant|event|island] [--json]
+    python orders_lookup.py expiring [--date 2026-11-16] [--days 30] [--json]
     python orders_lookup.py plant <plant key, name or EIA plant id> [--date ...] [--json]
     python orders_lookup.py order <order number, e.g. 202-26-51> [--json]
     python orders_lookup.py court [--json]
@@ -33,12 +34,12 @@ import re
 import sys
 from collections import Counter
 
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 
 # The last date DOE's pages were read for this table. Orders issued later are not in it.
-TABLE_AS_OF = "2026-11-14"
+TABLE_AS_OF = "2026-11-16"
 # The last date court actions were looked for. Only actions found by then are in the court table.
-COURT_AS_OF = "2026-11-14"
+COURT_AS_OF = "2026-11-16"
 DOE_PAGES = ("https://www.energy.gov/ceser/2026-doe-202c-orders",
              "https://www.energy.gov/ceser/2025-doe-202c-orders")
 
@@ -48,12 +49,15 @@ PLANT_MW = os.path.join(HERE, "doe_202c_plant_mw.csv")
 COURT = os.path.join(HERE, "doe_202c_court.csv")
 KINDS = ("plant", "event", "island")
 COAL_FUELS = frozenset({"BIT", "SUB", "LIG", "ANT", "RC", "WC", "SGC"})
+PETITION = "petition for review"
 SHOW = ("order", "kind", "area", "recipient", "plant_key", "plant", "issued", "effective",
         "expires", "expires_time", "note", "source")
 COURT_SHOW = ("order", "plant_key", "date", "date_kind", "court", "case", "action", "source", "note")
-COURT_LIMIT = ("Court actions found as of %s; pending cases and actions not yet found are not "
-               "listed. A court action on one order says nothing about any other order, and the "
-               "in-force dates here are the dates in DOE's orders." % COURT_AS_OF)
+COURT_LIMIT = ("Court actions found as of %s in the sources named in each row (court opinions, "
+               "litigation trackers, press releases); the court dockets themselves were not read, "
+               "so later petitions, consolidations, abeyance orders and rulings may be missing. A "
+               "court action on one order says nothing about any other order, and the in-force "
+               "dates here are the dates in DOE's orders." % COURT_AS_OF)
 
 
 def _date(s):
@@ -211,6 +215,24 @@ def court_for(court, orders=None, plant_key=None):
             or (plant_key is not None and c["plant_key"] == plant_key)]
 
 
+def court_overview(court, rows):
+    """Which orders have a petition for review in the court table, and how many rulings it has."""
+    kinds = {r["order"]: r["kind"] for r in rows}
+    pet = sorted({c["order"] for c in court if c["action"] == PETITION})
+    return {"orders_petitioned": pet,
+            "plant_orders_petitioned": sum(1 for o in pet if kinds.get(o) == "plant"),
+            "plant_orders": sum(1 for r in rows if r["kind"] == "plant"),
+            "plants_petitioned": sorted({c["plant_key"] for c in court
+                                         if c["action"] == PETITION and c["plant_key"]}),
+            "rulings": sum(1 for c in court if c["date_kind"] == "decided")}
+
+
+def overview_text(ov):
+    return ("Petitions for review found against %d of %d plant orders (plants: %s); court rulings "
+            "found: %d." % (ov["plant_orders_petitioned"], ov["plant_orders"],
+                            ", ".join(ov["plants_petitioned"]) or "none", ov["rulings"]))
+
+
 def mw_in_force(rows, plants, day):
     on = sorted({r["plant_key"] for r in in_force(rows, day, "plant")})
     return {"plants": on,
@@ -222,6 +244,7 @@ def mw_in_force(rows, plants, day):
 
 def summary(rows, plants, day, court=()):
     by_kind = Counter(r["kind"] for r in rows)
+    ov = court_overview(court, rows)
     return {"orders": len(rows),
             "by_year": {str(y): n for y, n in sorted(Counter(r["issued"].year for r in rows).items())},
             "by_kind": {k: by_kind.get(k, 0) for k in KINDS},
@@ -229,7 +252,10 @@ def summary(rows, plants, day, court=()):
             "in_force": len(in_force(rows, day)),
             "mw": mw_in_force(rows, plants, day),
             "court_actions": len(court),
-            "orders_vacated": sorted({c["order"] for c in court if c["action"] == "vacated"})}
+            "orders_vacated": sorted({c["order"] for c in court if c["action"] == "vacated"}),
+            "orders_petitioned": ov["orders_petitioned"],
+            "plant_orders_petitioned": ov["plant_orders_petitioned"],
+            "plants_petitioned": ov["plants_petitioned"]}
 
 
 def row_out(r):
@@ -401,10 +427,13 @@ def main(argv=None, rows=None, plants=None, court=None):
             text.append("No order %r in the table (as of %s)." % (args.query, TABLE_AS_OF))
             found = False
     elif args.cmd == "court":
+        ov = court_overview(court, rows)
         res["court"] = [court_out(c) for c in court]
+        res["overview"] = ov
         res["court_limit"] = COURT_LIMIT
         text.append("Court actions on 202(c) orders in the court table: %d." % len(court))
         text += ["  " + court_line(c) for c in court]
+        text.append(overview_text(ov))
         text.append(COURT_LIMIT)
         found = bool(court)
     else:
@@ -420,6 +449,7 @@ def main(argv=None, rows=None, plants=None, court=None):
         text.append(res["renewal_note"])
         text.append("Court actions in the court table: %d; orders vacated by a court: %s."
                     % (s["court_actions"], ", ".join(s["orders_vacated"]) or "none"))
+        text.append(overview_text(court_overview(court, rows)))
 
     if args.json:
         print(json.dumps(res, indent=1))
