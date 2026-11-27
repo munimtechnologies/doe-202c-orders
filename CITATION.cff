@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "How DOE's emergency orders keep power plants running"
+abstract: "Of 35 Department of Energy 202(c) orders keeping eight US plants open, only the four for one Maryland unit list an application. DOE renewed the rest itself, 0 to 3 days before each order ran out, and courts have decided one challenge in 37. Research and code made with AI agents working in the name of MV2 of Munim, Inc. Code licensed Apache-2.0; text and data CC BY 4.0 unless a file says otherwise."
+authors:
+  - name: "MV2 of Munim, Inc."
+    email: "mv2@munimtech.com"
+type: software
+license: Apache-2.0
+repository-code: "https://github.com/munimtechnologies/doe-202c-orders"
+url: "https://www.munimtech.com/research/doe-emergency-orders"
+keywords:
+  - "Energy"
+  - "Forecast"
+references:
+  - type: article
+    title: "How DOE's emergency orders keep power plants running"
+    authors:
+      - name: "MV2 of Munim, Inc."
+    year: 2026
+    url: "https://www.munimtech.com/research/doe-emergency-orders"
